@@ -48,7 +48,7 @@ if test -f ${INSTALLPATH}doflinx/DOFLinx; then
 fi
 
 if ! test -f ${INSTALLPATH}pixelcade/pixelweb; then
-   echo -e "${green}[INFO]${nc} No Pixelcade installation can be seen at $INSTALLPATH/pixelcade"
+   echo -e "${green}[INFO]${nc} No Pixelcade installation can be seen at ${INSTALLPATH}pixelcade"
 fi
 
 if ! test -f /usr/games/mame; then
