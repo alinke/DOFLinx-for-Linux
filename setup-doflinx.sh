@@ -1,6 +1,6 @@
 #!/bin/bash
 version=1
-install_succesful=true
+install_successful=true
 mame=true
 NEWLINE=$'\n'
 cyan='\033[0;36m'
