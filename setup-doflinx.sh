@@ -10,7 +10,7 @@ green='\033[0;32m'
 nc='\033[0m'
 
 # Run this script with this command
-# wget https://github.com/DOFLinx/DOFLinx-for-Linux/setup-doflinx.sh && chmod +x setup-doflinx.sh && ./setup-doflinx.sh
+# wget https://raw.githubusercontent.com/DOFLinx/DOFLinx-for-Linux/refs/heads/main/setup-doflinx.sh && chmod +x setup-doflinx.sh && ./setup-doflinx.sh
 
 function pause(){
  read -s -n 1 -p "Press any key to continue . . ."
