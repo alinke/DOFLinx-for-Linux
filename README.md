@@ -1,5 +1,8 @@
 # DOFLinx-for-Linux
 
+# ! CURRENTLY IN BETA !
+
+
 Read the general documentation and Linux specific documentation for DOFLinx over here https://doflinx.github.io/docs/
 
 For the DOFLinx Windows version and current *.MAME files go here https://github.com/DOFLinx/DOFLinx
