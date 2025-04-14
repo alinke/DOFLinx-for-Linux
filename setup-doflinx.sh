@@ -2,6 +2,13 @@
 version=1
 install_successful=true
 mame=true
+
+batocera=false
+batocera_version=default
+batocera_40_plus_version=40
+batocera_40_plus=false
+
+
 NEWLINE=$'\n'
 cyan='\033[0;36m'
 red='\033[0;31m'
@@ -180,6 +187,22 @@ sed -i -e "s|/home/arcade/|${INSTALLPATH}|g" ${INSTALLPATH}/doflinx/config/DOFLi
 if [ $? -ne 0 ]; then
    echo -e "${red}[ERROR] Failed to edit DOFLinx.ini"
    install_successful=false
+fi
+
+# checking if we have a Batocera installation and if so, we'll add doflinx to Batocera services
+if batocera-info | grep -q 'System'; then
+   echo "Batocera Detected"
+   batocera_version="$(batocera-es-swissknife --version | cut -c1-2)" #get the version of Batocera as only Batocera V40 and above support services
+   if [[ $batocera_version -ge $batocera_40_plus_version ]]; then #we need to add the service file and enable in services
+      if [[ ! -d ${INSTALLPATH}services ]]; then #does the ES scripts folder exist, make it if not
+         mkdir ${INSTALLPATH}services
+      fi
+      wget -O ${INSTALLPATH}services/doflinx https://raw.githubusercontent.com/alinke/pixelcade-linux-builds/main/batocera/pixelcade
+      chmod +x ${INSTALLPATH}services/doflinx
+      sleep 1
+      batocera-services enable doflinx 
+      echo "[INFO] DOFLinx added to Batocera services for Batocera V40 and up"
+   fi #TODO add support for Batocera V39 and below and modify custom.sh
 fi
 
 echo -e "${green}[INFO]${nc} Cleaning up"
