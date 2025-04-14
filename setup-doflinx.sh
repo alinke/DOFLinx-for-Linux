@@ -1,13 +1,10 @@
 #!/bin/bash
+# Run this script with this command
+# wget https://raw.githubusercontent.com/DOFLinx/DOFLinx-for-Linux/refs/heads/main/setup-doflinx.sh && chmod +x setup-doflinx.sh && ./setup-doflinx.sh
 version=1
 install_successful=true
 mame=true
-
-batocera=false
-batocera_version=default
 batocera_40_plus_version=40
-batocera_40_plus=false
-
 
 NEWLINE=$'\n'
 cyan='\033[0;36m'
@@ -15,9 +12,6 @@ red='\033[0;31m'
 yellow='\033[0;33m'
 green='\033[0;32m'
 nc='\033[0m'
-
-# Run this script with this command
-# wget https://raw.githubusercontent.com/DOFLinx/DOFLinx-for-Linux/refs/heads/main/setup-doflinx.sh && chmod +x setup-doflinx.sh && ./setup-doflinx.sh
 
 function pause(){
  read -s -n 1 -p "Press any key to continue . . ."
@@ -197,7 +191,7 @@ if batocera-info | grep -q 'System'; then
       if [[ ! -d ${INSTALLPATH}services ]]; then #does the ES scripts folder exist, make it if not
          mkdir ${INSTALLPATH}services
       fi
-      wget -O ${INSTALLPATH}services/doflinx https://raw.githubusercontent.com/alinke/DOFLinx-for-Linux/main/batocera/doflinx
+      wget -O ${INSTALLPATH}services/doflinx https://raw.githubusercontent.com/DOFLinx/DOFLinx-for-Linux/main/batocera/doflinx
       chmod +x ${INSTALLPATH}services/doflinx
       sleep 1
       batocera-services enable doflinx 
