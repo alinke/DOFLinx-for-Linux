@@ -197,12 +197,14 @@ if batocera-info | grep -q 'System'; then
       if [[ ! -d ${INSTALLPATH}services ]]; then #does the ES scripts folder exist, make it if not
          mkdir ${INSTALLPATH}services
       fi
-      wget -O ${INSTALLPATH}services/doflinx https://raw.githubusercontent.com/alinke/pixelcade-linux-builds/main/batocera/pixelcade
+      wget -O ${INSTALLPATH}services/doflinx https://raw.githubusercontent.com/alinke/DOFLinx-for-Linux/main/batocera/doflinx
       chmod +x ${INSTALLPATH}services/doflinx
       sleep 1
       batocera-services enable doflinx 
       echo "[INFO] DOFLinx added to Batocera services for Batocera V40 and up"
    fi #TODO add support for Batocera V39 and below and modify custom.sh
+else
+  echo -e "${yellow}[ERROR]${nc} Not on Batocera, skipping Batocera service setup..."
 fi
 
 echo -e "${green}[INFO]${nc} Cleaning up"
