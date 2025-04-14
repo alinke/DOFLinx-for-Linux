@@ -7,7 +7,7 @@ install_successful=true
 mame=true
 batocera_40_plus_version=40
 RETROPIE_AUTOSTART_FILE="/opt/retropie/configs/all/autostart.sh"
-RETROPIE_LINE_TO_ADD="cd /home/pi/doflinx && ./DOFLinx -PATH_INI=/home/pi/doflinx/config/DOFLinx.ini"
+RETROPIE_LINE_TO_ADD="cd ~/doflinx && ./DOFLinx -PATH_INI=~/doflinx/config/DOFLinx.ini"
 
 NEWLINE=$'\n'
 cyan='\033[0;36m'
