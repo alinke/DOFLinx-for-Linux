@@ -1,10 +1,13 @@
 #!/bin/bash
 # Run this script with this command
 # wget https://raw.githubusercontent.com/DOFLinx/DOFLinx-for-Linux/refs/heads/main/setup-doflinx.sh && chmod +x setup-doflinx.sh && ./setup-doflinx.sh
+# wget https://raw.githubusercontent.com/alinke/DOFLinx-for-Linux/refs/heads/main/setup-doflinx.sh && chmod +x setup-doflinx.sh && ./setup-doflinx.sh
 version=1
 install_successful=true
 mame=true
 batocera_40_plus_version=40
+RETROPIE_AUTOSTART_FILE="/opt/retropie/configs/all/autostart.sh"
+RETROPIE_LINE_TO_ADD="cd /home/pi/doflinx && ./DOFLinx -PATH_INI=/home/pi/doflinx/config/DOFLinx.ini"
 
 NEWLINE=$'\n'
 cyan='\033[0;36m'
@@ -183,7 +186,7 @@ if [ $? -ne 0 ]; then
    install_successful=false
 fi
 
-# checking if we have a Batocera installation and if so, we'll add doflinx to Batocera services
+# Checking for Batocera installation
 if batocera-info | grep -q 'System'; then
    echo "Batocera Detected"
    batocera_version="$(batocera-es-swissknife --version | cut -c1-2)" #get the version of Batocera as only Batocera V40 and above support services
@@ -196,9 +199,28 @@ if batocera-info | grep -q 'System'; then
       sleep 1
       batocera-services enable doflinx 
       echo "[INFO] DOFLinx added to Batocera services for Batocera V40 and up"
-   fi #TODO add support for Batocera V39 and below and modify custom.sh
+   fi # TODO add support for Batocera V39 and below and modify custom.sh
 else
-  echo -e "${yellow}[ERROR]${nc} Not on Batocera, skipping Batocera service setup..."
+  echo -e "${yellow}[ERROR]${nc} Not on Batocera, skipping Batocera setup..."
+fi
+
+# Checking for Retropie installation
+if [[ -f "$RETROPIE_AUTOSTART_FILE" ]]; then
+  echo "${yellow}RetroPie Detected...${nc}"
+  if grep -q "DOFLinx" "$RETROPIE_AUTOSTART_FILE"; then
+      echo "DOFLinx entry already exists in $RETROPIE_AUTOSTART_FILE. Skipping."
+  else
+      echo "Adding DOFLinx to $RETROPIE_AUTOSTART_FILE"
+      if grep -q "pixelweb" "$RETROPIE_AUTOSTART_FILE"; then
+          sudo sed -i '/pixelweb/a '"$RETROPIE_LINE_TO_ADD" "$RETROPIE_AUTOSTART_FILE"  # insert DOFLinx after the pixelweb line
+      else
+          echo "$RETROPIE_LINE_TO_ADD" | sudo tee -a "$RETROPIE_AUTOSTART_FILE" > /dev/null
+      fi
+      echo "DOFLinx added to RetroPie autostart"
+  fi
+  sudo chmod +x "$RETROPIE_AUTOSTART_FILE"
+else
+  echo "${yellow}Not on RetroPie, skipping RetroPie setup...${white}"
 fi
 
 echo -e "${green}[INFO]${nc} Cleaning up"
