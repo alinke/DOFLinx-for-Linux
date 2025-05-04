@@ -498,8 +498,6 @@ else
   echo "${red}WARNING: Pixelcade not found at $HOME/pixelcade, please install Pixelcade first${nc}"
 fi
 
-#TODO add an undo param for this script
-
 echo -e "${cyan}[INFO] Cleaning up${nc} "
 cd ${HOME}/
 rm -r ${HOME}/doflinx/temp
@@ -514,4 +512,8 @@ if [[ $install_successful == "true" ]]; then
 else
   echo -e "${red}[ERROR]${nc} DOFLinx installation failed${nc}"
 fi
+
+echo -e "${cyan}[INFO] Now Starting DOFLinx...${nc}"
+cd ${HOME}/doflinx && ./DOFLinx PATH_INI=${HOME}/doflinx/config/DOFLinx.ini &
+
 echo ""
