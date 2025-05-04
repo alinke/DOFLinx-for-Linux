@@ -2,11 +2,19 @@
 # Run this script with this command
 # wget https://raw.githubusercontent.com/DOFLinx/DOFLinx-for-Linux/refs/heads/main/setup-doflinx.sh && chmod +x setup-doflinx.sh && ./setup-doflinx.sh  TODO delete these lines later
 # wget https://raw.githubusercontent.com/alinke/DOFLinx-for-Linux/refs/heads/main/setup-doflinx.sh && chmod +x setup-doflinx.sh && ./setup-doflinx.sh
-version=1
+
+version=3
 install_successful=true
-mame=true
+batocera=false
 batocera_40_plus_version=40
 RETROPIE_AUTOSTART_FILE="/opt/retropie/configs/all/autostart.sh"
+BATOCERA_MAME_GENERATOR_V41="/usr/lib/python3.11/site-packages/configgen/generators/mame/mameGenerator.py"
+BATOCERA_MAME_GENERATOR_V42="/usr/lib/python3.12/site-packages/configgen/generators/mame/mameGenerator.py"
+BATOCERA_CONFIG_FIlE="/userdata/system/batocera.conf"
+BATOCERA_CONFIG_LINE1="mame.core=mame"
+BATOCERA_CONFIG_LINE2="mame.emulator=mame"
+BATOCERA_PLUGIN_PATH="/userdata/saves/mame/plugins"
+DOFLINX_INI_FILE="${HOME}/doflinx/config/DOFLinx.ini"
 RETROPIE_LINE_TO_ADD="cd ~/doflinx && ./DOFLinx -PATH_INI=~/doflinx/config/DOFLinx.ini"
 
 NEWLINE=$'\n'
@@ -16,47 +24,150 @@ yellow='\033[0;33m'
 green='\033[0;32m'
 nc='\033[0m'
 
+BACKUP_DIR="${HOME}/doflinx/backup"
+if batocera-info | grep -q 'System'; then
+   batocera=true
+fi
+
+download_github_file() {
+    local github_url="$1"
+    local filename="$2"
+    local download_dir="$3"
+    local output_path="${download_dir}/${filename}"
+    
+    # Convert GitHub blob URL to raw URL for downloading
+    local raw_url=$(echo "$github_url" | sed 's|github.com|raw.githubusercontent.com|' | sed 's|/blob/|/|')
+    
+    echo "Downloading: $filename to ${download_dir}"
+    wget -q -O "$output_path" "$raw_url" || {
+        echo "Error downloading $filename"
+        return 1
+    }
+    
+    echo "Downloaded: $filename"
+    return 0
+}
+
+# Backup a file before modifying it
+backup_file() {
+    local file_path="$1"
+    local backup_name="$2"
+    
+    # Create backup directory if it doesn't exist
+    mkdir -p "$BACKUP_DIR"
+    
+    # Only backup the file if it exists and hasn't been backed up yet
+    if [ -f "$file_path" ] && [ ! -f "$BACKUP_DIR/$backup_name" ]; then
+        echo "Backing up: $file_path to $BACKUP_DIR/$backup_name"
+        cp "$file_path" "$BACKUP_DIR/$backup_name"
+    fi
+}
+
+restore_files() {
+    echo -e "${yellow}Uninstall mode detected. Restoring original files...${nc}"
+    
+    if [ ! -d "$BACKUP_DIR" ]; then
+        echo -e "${red}No backups found to restore.${nc}"
+        exit 0
+    fi
+    
+    if [ -f "$BACKUP_DIR/mameGenerator.py.original" ]; then
+        # Try to determine which version to restore to
+        if [ -f "$BATOCERA_MAME_GENERATOR_V41" ]; then
+            echo "Restoring: $BATOCERA_MAME_GENERATOR_V41"
+            cp "$BACKUP_DIR/mameGenerator.py.original" "$BATOCERA_MAME_GENERATOR_V41"
+        elif [ -f "$BATOCERA_MAME_GENERATOR_V42" ]; then
+            echo "Restoring: $BATOCERA_MAME_GENERATOR_V42"
+            cp "$BACKUP_DIR/mameGenerator.py.original" "$BATOCERA_MAME_GENERATOR_V42"
+        else
+            echo -e "${red}Could not determine Batocera MAME generator path for restoration${nc}"
+        fi
+    fi
+    
+    # Restore Batocera config file
+    if [ -f "$BACKUP_DIR/batocera.conf.original" ] && [ -f "$BATOCERA_CONFIG_FIlE" ]; then
+        echo "Restoring: $BATOCERA_CONFIG_FIlE"
+        cp "$BACKUP_DIR/batocera.conf.original" "$BATOCERA_CONFIG_FIlE"
+    fi
+    
+    # Restore RetroPie autostart file if it was modified
+    if [ -f "$BACKUP_DIR/autostart.sh.original" ] && [ -f "$RETROPIE_AUTOSTART_FILE" ]; then
+        echo "Restoring: $RETROPIE_AUTOSTART_FILE"
+        cp "$BACKUP_DIR/autostart.sh.original" "$RETROPIE_AUTOSTART_FILE"
+    fi
+    
+    # Remove DOFLinx plugin from MAME plugins directory
+    if [ "$batocera" = "true" ]; then
+        PLUGIN_PATH="${BATOCERA_PLUGIN_PATH}"
+    else
+        PLUGIN_PATH=$(find / -name init.lua 2>/dev/null | grep hiscore| xargs dirname | xargs dirname | head -n 1)
+        if [ -z "$PLUGIN_PATH" ]; then
+            PLUGIN_PATH="/usr/local/share/mame/plugins"
+        fi
+    fi
+    
+    if [ -d "${PLUGIN_PATH}/doflinx" ]; then
+        echo "Removing DOFLinx plugin from MAME plugins directory"
+        rm -rf "${PLUGIN_PATH}/doflinx" || sudo rm -rf "${PLUGIN_PATH}/doflinx"
+    fi
+    
+    # Remove DOFLinx from Batocera services if applicable
+    if [ "$batocera" = "true" ]; then
+        if [ -f "${HOME}/services/doflinx" ]; then
+            echo "Disabling and removing DOFLinx service"
+            batocera-services disable doflinx 2>/dev/null
+            rm -f "${HOME}/services/doflinx"
+        fi
+        
+        # Try to make the changes permanent
+        if batocera-save-overlay 2>/dev/null; then
+            echo "Changes saved to Batocera overlay"
+        else
+            echo "Warning: Could not save to overlay. Changes will be restored at next boot."
+        fi
+    fi
+    
+    # Remove DOFLinx installation directory
+    if [ -d "${HOME}/doflinx" ]; then
+        echo "Removing DOFLinx installation directory"
+        rm -rf "${HOME}/doflinx"
+    fi
+    
+    echo -e "${green}Uninstallation complete. All modified files have been restored.${nc}"
+    exit 0
+}
+
 function pause(){
  read -s -n 1 -p "Press any key to continue . . ."
  echo ""
 }
+
+commandLineArg=$1
+
+if [ "$commandLineArg" = "undo" ]; then
+    restore_files
+fi
 
 echo -e ""
 echo -e "       ${cyan}DOFLinx for Linux : Installer Version $version${nc}    "
 echo -e ""
 echo -e "This script will install the DOFLinx software in $HOME/doflinx"
 echo -e "Plese ensure you have at least 1 GB of free disk space in $HOME"
-echo -e "Use "nomame" on the command line for this script if you do not want the DOFLinx version of Mame installed.  If you do this you will need to install it manually later."
 echo -e ""
 pause
 
-# TODO
-# set DOFLinx to run?
-
-INSTALLPATH="${HOME}/"
-
-commandLineArg=$1
-
-if [[ "$commandLineArg" == "nomame" ]]; then
-   echo -e "${yellow}[WARNING]${nc} Excluding setting up the DOFLinx version of Mame (due to "nomame" parameter).  Please do this manually later."
-   mame=false
-fi
 
 # If this is an existing installation then DOFLinx could already be running
-if test -f ${INSTALLPATH}doflinx/DOFLinx; then
+if test -f ${HOME}/doflinx/DOFLinx; then
    echo "[INFO] Existing DOFLinx installation found"
    if pgrep -x "DOFLinx" > /dev/null; then
      echo -e "${green}[INFO]${nc} Stopping DOFLinx"
-     ${INSTALLPATH}doflinx/DOFLinxMsg QUIT
+     ${HOME}/doflinx/DOFLinxMsg QUIT
   fi
 fi
 
-if ! test -f ${INSTALLPATH}pixelcade/pixelweb; then
-   echo -e "${green}[INFO]${nc} No Pixelcade installation can be seen at ${INSTALLPATH}pixelcade"
-fi
-
-if ! test -f /usr/games/mame; then
-   echo -e "${yellow}[WARNING]${nc} No Mame instllation can be seen at /usr/games"
+if ! test -f ${HOME}/pixelcade/pixelweb; then
+   echo -e "${green}[INFO]${nc} No Pixelcade installation can be seen at ${HOME}/pixelcade"
 fi
 
 # The possible platforms are:
@@ -126,61 +237,73 @@ if [[ $machine_arch == "default" ]]; then
   machine_arch=x64
 fi
 
-if [[ ! -d "${INSTALLPATH}doflinx" ]]; then #create the doflinx folder if it's not there
-   mkdir ${INSTALLPATH}doflinx
+if [[ ! -d "${HOME}/doflinx" ]]; then #create the doflinx folder if it's not there
+   mkdir ${HOME}/doflinx
 fi
-if [[ ! -d "${INSTALLPATH}doflinx/temp" ]]; then #create the doflinx/temp folder if it's not there
-   mkdir ${INSTALLPATH}doflinx/temp
+if [[ ! -d "${HOME}/doflinx/temp" ]]; then #create the doflinx/temp folder if it's not there
+   mkdir ${HOME}/doflinx/temp
 fi
 
 echo -e "${cyan}[INFO]Installing DOFLinx Software...${nc}"
 
-cd ${INSTALLPATH}doflinx/temp
+cd ${HOME}/doflinx/temp
 
-if [[ $mame == "true" ]]; then
-   mame_url=https://github.com/DOFLinx/DOFLinx-for-Linux/releases/download/mame-${machine_arch}/mame-${machine_arch}.zip
-   wget -O "${INSTALLPATH}doflinx/temp/mame-${machine_arch}.zip" "$mame_url"
-   if [ $? -ne 0 ]; then
-      echo -e "${red}[ERROR]${nc} Failed to download Mame"
-      install_successful=false
-   else
-      unzip mame-${machine_arch}
-      if [ $? -ne 0 ]; then
-         echo -e "${red}[ERROR]${nc} Failed to unzip Mame"
-         install_successful=false
-      else
-         sudo cp -f /usr/games/mame /usr/games/mame_old
-         sudo cp -f ./mame /usr/games/mame
-         if [ $? -ne 0 ]; then
-            echo -e "${red}[ERROR]${nc} Failed to copy Mame executable"
-            install_successful=false
-         fi
-      fi
-   fi
-fi
 doflinx_url=https://github.com/DOFLinx/DOFLinx-for-Linux/releases/download/doflinx/doflinx.zip
-wget -O "${INSTALLPATH}doflinx/temp/doflinx.zip" "$doflinx_url"
+wget -O "${HOME}/doflinx/temp/doflinx.zip" "$doflinx_url"
 if [ $? -ne 0 ]; then
    echo -e "${red}[ERROR]${nc} Failed to download DOFLinx"
    install_successful=false
 else
-   unzip -o doflinx.zip -d ${INSTALLPATH}doflinx
+   unzip -o doflinx.zip -d ${HOME}/doflinx
    if [ $? -ne 0 ]; then
       echo -e "${red}[ERROR]${nc} Failed to unzip DOFlinx"
       install_successful=false
    else
-      cp -f ${INSTALLPATH}doflinx/${machine_arch}/* ${INSTALLPATH}doflinx/
-      if [ $? -ne 0 ]; then
-         echo -e "${red}[ERROR]${nc} Failed to copy DOFLinx files"
-         install_successful=false
-      fi
+        cp -f ${HOME}/doflinx/${machine_arch}/* ${HOME}/doflinx/
+        if [ $? -ne 0 ]; then
+            echo -e "${red}[ERROR]${nc} Failed to copy DOFLinx files"
+            install_successful=false
+        fi
+
+        # Check if we are on Batocera and if so, change the plugin path
+        if batocera-info 2>/dev/null | grep -q 'System'; then
+            echo "Detected Batocera system"
+            PLUGIN_PATH="${BATOCERA_PLUGIN_PATH}"
+        else
+            echo "Not on Batocera, finding plugin path"
+            PLUGIN_PATH=$(find / -name init.lua 2>/dev/null | grep hiscore| xargs dirname | xargs dirname | head -n 1)
+            if [ -z "$PLUGIN_PATH" ]; then
+                echo "Warning: Could not find plugin path. Using default path."
+                PLUGIN_PATH="/usr/local/share/mame/plugins"
+            fi
+        fi
+      
+        cp -f -r "${HOME}/doflinx/DOFLinx Mame Integration/doflinx" ${PLUGIN_PATH}/
+        if [ $? -ne 0 ]; then
+            echo -e "${yellow}[WARNING]${nc} Failed to copy DOFLinx plugin, will attempt via sudo"
+            sudo cp -f -r "${HOME}/doflinx/DOFLinx Mame Integration/doflinx" ${PLUGIN_PATH}/
+            if [ $? -ne 0 ]; then
+                echo -e "${red}[ERROR]${nc} Failed to copy DOFLinx plugin"
+                install_successful=false
+            fi
+        fi
+        cp -f ${HOME}/doflinx/DLSocket/${machine_arch}/DLSocket ${PLUGIN_PATH}/doflinx/
+        if [ $? -ne 0 ]; then
+            echo -e "${yellow}[WARNING]${nc} Failed to copy DLSocket to DOFLinx plugin directory, will attempt via sudo"
+            sudo cp -f ${HOME}/doflinx/DLSocket/${machine_arch}/DLSocket ${PLUGIN_PATH}/doflinx/
+            if [ $? -ne 0 ]; then
+                echo -e "${red}[ERROR]${nc} Failed to copy DLSocket to DOFLinx plugin directory"
+                install_successful=false
+            fi
+        fi
    fi
 fi
 
-chmod a+x ${INSTALLPATH}doflinx/DOFLinx
-chmod a+x ${INSTALLPATH}doflinx/DOFLinxMsg
+chmod a+x ${HOME}/doflinx/DOFLinx
+chmod a+x ${HOME}/doflinx/DOFLinxMsg
+chmod +x "${PLUGIN_PATH}/doflinx/DLSocket"
 
-sed -i -e "s|/home/arcade/|${INSTALLPATH}|g" ${INSTALLPATH}/doflinx/config/DOFLinx.ini
+sed -i -e "s|/home/arcade/|${HOME}/|g" ${HOME}//doflinx/config/DOFLinx.ini
 if [ $? -ne 0 ]; then
    echo -e "${red}[ERROR] Failed to edit DOFLinx.ini"
    install_successful=false
@@ -188,52 +311,191 @@ fi
 
 # Checking for Batocera installation
 if batocera-info | grep -q 'System'; then
-   echo "Batocera Detected"
+   echo -e "${green}[INFO]${nc}Batocera Detected"
    batocera_version="$(batocera-es-swissknife --version | cut -c1-2)" #get the version of Batocera as only Batocera V40 and above support services
    if [[ $batocera_version -ge $batocera_40_plus_version ]]; then #we need to add the service file and enable in services
-      if [[ ! -d ${INSTALLPATH}services ]]; then #does the ES scripts folder exist, make it if not
-         mkdir ${INSTALLPATH}services
+      if [[ ! -d ${HOME}/services ]]; then #does the ES scripts folder exist, make it if not
+         mkdir ${HOME}/services
       fi
-      wget -O ${INSTALLPATH}services/doflinx https://raw.githubusercontent.com/DOFLinx/DOFLinx-for-Linux/main/batocera/doflinx
-      chmod +x ${INSTALLPATH}services/doflinx
+      wget -O ${HOME}/services/doflinx https://raw.githubusercontent.com/DOFLinx/DOFLinx-for-Linux/main/batocera/doflinx
+      chmod +x ${HOME}/services/doflinx
       sleep 1
       batocera-services enable doflinx 
-      echo "[INFO] DOFLinx added to Batocera services for Batocera V40 and up"
+      echo -e "${green}[INFO]${nc} DOFLinx added to Batocera services for Batocera V40 and up"
    fi # TODO add support for Batocera V39 and below and modify custom.sh
+
+   #now let's install the doflinx plug-in
+   #TODO this is a temp fix until doflinx is updated
+   #****************************************************************
+   DOFLINX_DIR="${BATOCERA_PLUGIN_PATH}/doflinx"
+   if [ ! -d "$DOFLINX_DIR" ]; then
+        echo "Creating directory: $DOFLINX_DIR"
+        mkdir -p "$DOFLINX_DIR"
+   fi
+   echo "Downloading doflinx plugin files..."
+   if [ "$machine_arch" = "arm64" ]; then
+      download_github_file "https://github.com/alinke/pixelcade-linux-builds/blob/main/batocera/doflinx/DLSocket" "DLSocket" "$DOFLINX_DIR"
+      download_github_file "https://github.com/alinke/pixelcade-linux-builds/blob/main/batocera/doflinx/DOFLinx" "DOFLinx" "${HOME}/doflinx"
+      download_github_file "https://github.com/alinke/pixelcade-linux-builds/blob/main/batocera/doflinx/DOFLinx.pdb" "DOFLinx.pdb" "${HOME}/doflinx"
+      chmod a+x ${HOME}/doflinx/DOFLinx
+      chmod a+x ${HOME}/doflinx/DOFLinxMsg
+      chmod a+x ${DOFLINX_DIR}/DLSocket
+   fi   
+   download_github_file "https://github.com/alinke/pixelcade-linux-builds/blob/main/batocera/doflinx/init.lua" "init.lua" "$DOFLINX_DIR"
+   download_github_file "https://github.com/alinke/pixelcade-linux-builds/blob/main/batocera/doflinx/plugin.json" "plugin.json" "$DOFLINX_DIR"
+   #*****************************************************************
+  
+   echo "doflinx plugin installation completed."
+    
+   # Determine the correct path based on the Batocera version
+   if [ "$batocera_version" = "41" ]; then
+        MAME_GENERATOR="$BATOCERA_MAME_GENERATOR_V41"
+        echo "Detected Batocera V41"
+   elif [ "$batocera_version" = "42" ]; then
+        MAME_GENERATOR="$BATOCERA_MAME_GENERATOR_V42"
+        echo "Detected Batocera V42"
+   else
+        # Check which path exists
+        if [ -f "$BATOCERA_MAME_GENERATOR_V41" ]; then
+            MAME_GENERATOR="$BATOCERA_MAME_GENERATOR_V41"
+            echo "Assuming Batocera V41 based on file path"
+        elif [ -f "$BATOCERA_MAME_GENERATOR_V42" ]; then
+            MAME_GENERATOR="$BATOCERA_MAME_GENERATOR_V42"
+            echo "Assuming Batocera V42 based on file path"
+        else
+            echo "Error: Could not find mameGenerator.py. Please check your Batocera version."
+        fi
+   fi
+
+   backup_file "$MAME_GENERATOR" "mameGenerator.py.original"
+   echo "Modifying $MAME_GENERATOR"
+   # Modify the Python mame generator file to add output network and to load the doflinx plugin
+
+   if grep -q "pluginsToLoad += \[ \"doflinx\" \]" "$MAME_GENERATOR"; then
+      echo "Skipped: The doflinx plugin is already added"
+   else
+      sed -i '/pluginsToLoad = \[\]/a \ \ \ \ \ \ \ \ pluginsToLoad += [ "doflinx" ]' "$MAME_GENERATOR"
+      echo "Successfully added doflinx plugin"
+   fi
+
+   if grep -q "commandArray += \[ \"-output\", \"network\" \]" "$MAME_GENERATOR"; then
+    echo "Skipped: The network output line is already added"
+   else
+      # note that not adding enough spaces will BREAK the python
+      sed -i '/if messSysName\[messMode\] == "" or messMode == -1:/i \ \ \ \ \ \ \ \ commandArray += [ "-output", "network" ]' "$MAME_GENERATOR"
+      echo "Successfully added -output network command line option"
+   fi
+
+   if [[ -f "$BATOCERA_CONFIG_FIlE" ]]; then
+      backup_file "$BATOCERA_CONFIG_FIlE" "batocera.conf.original"
+   fi
+   #Now let's switch the mame core to stand alone mame from libretro
+   if [ ! -f "$BATOCERA_CONFIG_FIlE" ]; then
+        echo "Error: $CONFIG_FILE does not exist. Skipping the config to switch to stand alone MAME which you'll need to do manually."
+   else 
+        if ! grep -q "^$BATOCERA_CONFIG_LINE1$" "$BATOCERA_CONFIG_FIlE"; then
+            # Append LINE1 to the file
+            echo "$BATOCERA_CONFIG_LINE1" >> "$BATOCERA_CONFIG_FIlE"
+            echo "Added: $BATOCERA_CONFIG_LINE1"
+        else
+            echo "Skipped: $BATOCERA_CONFIG_LINE1 already exists"
+        fi
+
+        if ! grep -q "^$BATOCERA_CONFIG_LINE2$" "$BATOCERA_CONFIG_FIlE"; then
+            # Append LINE2 to the file
+            echo "$BATOCERA_CONFIG_LINE2" >> "$BATOCERA_CONFIG_FIlE"
+            echo "Added: $BATOCERA_CONFIG_LINE2"
+        else
+            echo "Skipped: $BATOCERA_CONFIG_LINE2 already exists"
+        fi
+        echo "Batocera Configuration Updated"
+   fi
+
+   # Try to make the changes permanent
+   if batocera-save-overlay; then
+        echo "Changes saved to Batocera overlay"
+   else
+        echo "Warning: Could not save to overlay. Changes will be restored by custom.sh at next boot."
+   fi
+
 else
   echo -e "${yellow}[ERROR]${nc} Not on Batocera, skipping Batocera setup..."
 fi
 
 # Checking for Retropie installation
 if [[ -f "$RETROPIE_AUTOSTART_FILE" ]]; then
-  echo "${yellow}RetroPie Detected...${nc}"
+  echo "${green}[INFO]${nc}RetroPie Detected..."
+  backup_file "$RETROPIE_AUTOSTART_FILE" "autostart.sh.original"
   if grep -q "DOFLinx" "$RETROPIE_AUTOSTART_FILE"; then
-      echo "DOFLinx entry already exists in $RETROPIE_AUTOSTART_FILE. Skipping."
+      echo-e  "${green}[INFO]${nc}DOFLinx entry already exists in $RETROPIE_AUTOSTART_FILE. Skipping."
   else
-      echo "Adding DOFLinx to $RETROPIE_AUTOSTART_FILE"
+      echo -e "${green}[INFO]${nc}Adding DOFLinx to $RETROPIE_AUTOSTART_FILE"
       if grep -q "pixelweb" "$RETROPIE_AUTOSTART_FILE"; then
           sudo sed -i '/pixelweb/a '"$RETROPIE_LINE_TO_ADD" "$RETROPIE_AUTOSTART_FILE"  # insert DOFLinx after the pixelweb line
       else
           echo "$RETROPIE_LINE_TO_ADD" | sudo tee -a "$RETROPIE_AUTOSTART_FILE" > /dev/null
       fi
-      echo "DOFLinx added to RetroPie autostart"
+      echo -e "${green}[INFO]${nc}DOFLinx added to RetroPie autostart"
   fi
   sudo chmod +x "$RETROPIE_AUTOSTART_FILE"
 else
-  echo "${yellow}Not on RetroPie, skipping RetroPie setup...${white}"
+  echo -e "${green}[INFO]${nc}Not on RetroPie, skipping RetroPie setup..."
 fi
 
+
+# If this is a Pixelcade installation, then we'll pre-configure DOFLinx.ini
+if [ -d "$HOME/pixelcade" ]; then
+  echo "Pixelcade folder found at $HOME/pixelcade"
+  
+  DOFLINX_INI_FILE="${HOME}/doflinx/config/DOFLinx.ini"
+
+  if [ ! -f "$DOFLINX_INI_FILE" ]; then
+    echo "Warning: Config file not found at $DOFLINX_INI_FILE"
+    echo "Will attempt to continue with the rest of the script..."
+  else
+    backup_file "$DOFLINX_INI_FILE" "DOFLinx.ini.original"
+    ESCAPED_HOME=$(echo "$HOME" | sed 's/\//\\\//g')
+
+    # Update PATH_MAME with actual home path, sed can't handle normal variable substitution 
+    sed -i "s/^PATH_MAME=.*$/PATH_MAME=${ESCAPED_HOME}\/pixelcade\/DOFLinx\/DOFLinx_MAME\//" "$DOFLINX_INI_FILE"
+    sed -i "s/^PATH_PIXELCADE=.*$/PATH_PIXELCADE=${ESCAPED_HOME}\/pixelcade\//" "$DOFLINX_INI_FILE"
+    sed -i "s/^PATH_HI2TXT=.*$/PATH_HI2TXT=${ESCAPED_HOME}\/pixelcade\/hi2txt\//" "$DOFLINX_INI_FILE"
+    sed -i "s/^PATH_HI2TXT=/#PATH_HI2TXT=/" "$DOFLINX_INI_FILE"
+    # Uncomment PIXELCADE_LCD_USE_NETWORK_ADDRESS line
+    sed -i 's|^#PIXELCADE_LCD_USE_NETWORK_ADDRESS=1|PIXELCADE_LCD_USE_NETWORK_ADDRESS=1|' "$DOFLINX_INI_FILE"
+
+    # Make sure PIXELCADE_GAME_START_HIGHSCORE line is commented out because the Pixelcade Batocera script handles high scores
+    sed -i 's|^PIXELCADE_GAME_START_HIGHSCORE=1|#PIXELCADE_GAME_START_HIGHSCORE=1|' "$DOFLINX_INI_FILE"
+    grep -q "#PIXELCADE_GAME_START_HIGHSCORE=1" "$DOFLINX_INI_FILE" || echo "#PIXELCADE_GAME_START_HIGHSCORE=1" >> "$DOFLINX_INI_FILE"
+
+    if [ "$batocera" = "true" ]; then
+      echo "Batocera detected, updating MAME_FOLDER to /usr/bin/mame/"
+      sed -i 's|^MAME_FOLDER=.*$|MAME_FOLDER=/usr/bin/mame/|' "$DOFLINX_INI_FILE"
+      sed -i 's|^MAME_HISCORE_FOLDER=.*$|MAME_HISCORE_FOLDER=/userdata/saves/mame/plugins/hiscore/|' "$DOFLINX_INI_FILE"
+    else
+      echo "Not on Batocera, updating MAME_FOLDER to /usr/games/"
+      sed -i 's|^MAME_FOLDER=.*$|MAME_FOLDER=/usr/games/|' "$DOFLINX_INI_FILE"
+    fi
+
+    echo "DOFLinx.ini has been updated successfully."
+  fi
+else
+  echo "Pixelcade folder not found at $HOME/pixelcade"
+fi
+
+#TODO add an undo param for this script
+
 echo -e "${green}[INFO]${nc} Cleaning up"
-cd ${INSTALLPATH}
-rm -r ${INSTALLPATH}doflinx/temp
+cd ${HOME}/
+rm -r ${HOME}/doflinx/temp
 
 if [[ $install_successful == "true" ]]; then
    echo -e "${green}[INFO]${nc} DOFLinx Installed"
    echo -e "${green}[INFO]${nc} The guide can be found at https://doflinx.github.io/docs/"
    echo -e "${green}[INFO]${nc} Support can be found at http://www.vpforums.org/index.php?showforum=104"
-   echo -e "${green}[INFO]${nc} Now setup DOFLinx to start at boot running via sudo"
-   echo -e "${green}[INFO]${nc} A default DOFLinx.ini has been installed in ./DOFLinx/config and updated as best possible"
-   echo -e "${green}[INFO]${nc} You may need to customise parameters for your system in ./config/DOFLinx.ini for paths and button input codes"
+   echo -e "${green}[INFO]${nc} Now setup DOFLinx to start at boot running"
+   echo -e "${green}[INFO]${nc} A default DOFLinx.ini has been installed in ./DOFLinx/config"
+   echo -e "${green}[INFO]${nc} You may need to customize parameters for your system in ./config/DOFLinx.ini for button input codes"
 else
   echo -e "${red}[ERROR]${nc} DOFLinx installation failed"
 fi
