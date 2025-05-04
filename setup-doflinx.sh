@@ -2,6 +2,7 @@
 # Run this script with this command
 # wget https://raw.githubusercontent.com/DOFLinx/DOFLinx-for-Linux/refs/heads/main/setup-doflinx.sh && chmod +x setup-doflinx.sh && ./setup-doflinx.sh  TODO delete these lines later
 # wget https://raw.githubusercontent.com/alinke/DOFLinx-for-Linux/refs/heads/main/setup-doflinx.sh && chmod +x setup-doflinx.sh && ./setup-doflinx.sh
+# /usr/bin/emulatorlauncher -system mame -rom /userdata/roms/mame/1942.zip #for testing game launches in Batocera from command line
 
 version=3
 install_successful=true
@@ -582,7 +583,6 @@ case ${answer:0:1} in
         ;;
     * )
         echo -e "${red}Reboot skipped. Please remember to reboot your system later.${nc}"
-        echo -e "${red}Press any key to continue...${nc}"
         pause
         ;;
 esac
