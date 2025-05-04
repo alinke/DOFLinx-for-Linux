@@ -244,7 +244,7 @@ if [[ ! -d "${HOME}/doflinx/temp" ]]; then #create the doflinx/temp folder if it
    mkdir ${HOME}/doflinx/temp
 fi
 
-echo -e "${cyan}[INFO]Installing DOFLinx Software...${nc}"
+echo -e "${cyan}[INFO] Installing DOFLinx Software...${nc}"
 
 cd ${HOME}/doflinx/temp
 
@@ -276,6 +276,13 @@ else
                 echo "Warning: Could not find plugin path. Using default path."
                 PLUGIN_PATH="/usr/local/share/mame/plugins"
             fi
+        fi
+
+       #for a vanilla Batocera system, this plugins folder won't be there so we need to create it first
+       DOFLINX_DIR="${PLUGIN_PATH}/doflinx"
+        if [ ! -d "$DOFLINX_DIR" ]; then
+            echo "Creating directory: $DOFLINX_DIR"
+            mkdir -p "$DOFLINX_DIR"
         fi
       
         cp -f -r "${HOME}/doflinx/DOFLinx Mame Integration/doflinx" ${PLUGIN_PATH}/
@@ -321,10 +328,9 @@ if batocera-info | grep -q 'System'; then
       chmod +x ${HOME}/services/doflinx
       sleep 1
       batocera-services enable doflinx 
-      echo -e "${green}[INFO]${nc} DOFLinx added to Batocera services for Batocera V40 and up"
-   fi # TODO add support for Batocera V39 and below and modify custom.sh
+      echo -e "${green}[INFO] DOFLinx added to Batocera services for Batocera V40 and up${nc}"
+   fi 
 
-   #now let's install the doflinx plug-in
    #TODO this is a temp fix until doflinx is updated
    #****************************************************************
    DOFLINX_DIR="${BATOCERA_PLUGIN_PATH}/doflinx"
@@ -372,18 +378,18 @@ if batocera-info | grep -q 'System'; then
    # Modify the Python mame generator file to add output network and to load the doflinx plugin
 
    if grep -q "pluginsToLoad += \[ \"doflinx\" \]" "$MAME_GENERATOR"; then
-      echo "Skipped: The doflinx plugin is already added"
+      echo -e "${cyan}[INFO] Skipped: The doflinx plugin is already added${nc}"
    else
       sed -i '/pluginsToLoad = \[\]/a \ \ \ \ \ \ \ \ pluginsToLoad += [ "doflinx" ]' "$MAME_GENERATOR"
-      echo "Successfully added doflinx plugin"
+      echo -e "${cyan}[INFO] Successfully added doflinx plugin${nc}"
    fi
 
    if grep -q "commandArray += \[ \"-output\", \"network\" \]" "$MAME_GENERATOR"; then
-    echo "Skipped: The network output line is already added"
+      echo -e "${cyan}[INFO] Skipped: The network output line is already added${nc}"
    else
       # note that not adding enough spaces will BREAK the python
       sed -i '/if messSysName\[messMode\] == "" or messMode == -1:/i \ \ \ \ \ \ \ \ commandArray += [ "-output", "network" ]' "$MAME_GENERATOR"
-      echo "Successfully added -output network command line option"
+      echo -e "${cyan}[INFO] Successfully added -output network command line option${nc}"
    fi
 
    if [[ -f "$BATOCERA_CONFIG_FIlE" ]]; then
@@ -396,17 +402,17 @@ if batocera-info | grep -q 'System'; then
         if ! grep -q "^$BATOCERA_CONFIG_LINE1$" "$BATOCERA_CONFIG_FIlE"; then
             # Append LINE1 to the file
             echo "$BATOCERA_CONFIG_LINE1" >> "$BATOCERA_CONFIG_FIlE"
-            echo "Added: $BATOCERA_CONFIG_LINE1"
+            echo -e "${cyan}[INFO] Added: $BATOCERA_CONFIG_LINE1${nc}"
         else
-            echo "Skipped: $BATOCERA_CONFIG_LINE1 already exists"
+            echo -e "${cyan}[INFO] $BATOCERA_CONFIG_LINE1 already exists${nc}"
         fi
 
         if ! grep -q "^$BATOCERA_CONFIG_LINE2$" "$BATOCERA_CONFIG_FIlE"; then
             # Append LINE2 to the file
             echo "$BATOCERA_CONFIG_LINE2" >> "$BATOCERA_CONFIG_FIlE"
-            echo "Added: $BATOCERA_CONFIG_LINE2"
+            echo -e "${cyan}[INFO] Added: $BATOCERA_CONFIG_LINE2${nc}"
         else
-            echo "Skipped: $BATOCERA_CONFIG_LINE2 already exists"
+            echo -e "${cyan}[INFO] Skipped: $BATOCERA_CONFIG_LINE2 already exists${nc}"
         fi
         echo "Batocera Configuration Updated"
    fi
@@ -457,7 +463,7 @@ if [ -d "$HOME/pixelcade" ]; then
     ESCAPED_HOME=$(echo "$HOME" | sed 's/\//\\\//g')
 
     # Update PATH_MAME with actual home path, sed can't handle normal variable substitution 
-    sed -i "s/^PATH_MAME=.*$/PATH_MAME=${ESCAPED_HOME}\/pixelcade\/DOFLinx\/DOFLinx_MAME\//" "$DOFLINX_INI_FILE"
+    sed -i "s/^PATH_MAME=.*$/PATH_MAME=${ESCAPED_HOME}\/pixelcade\/DOFLinx\/DOFLinx_MAME\//" "$DOFLINX_INI_FILE"  
     sed -i "s/^PATH_PIXELCADE=.*$/PATH_PIXELCADE=${ESCAPED_HOME}\/pixelcade\//" "$DOFLINX_INI_FILE"
     sed -i "s/^PATH_HI2TXT=.*$/PATH_HI2TXT=${ESCAPED_HOME}\/pixelcade\/hi2txt\//" "$DOFLINX_INI_FILE"
     sed -i "s/^PATH_HI2TXT=/#PATH_HI2TXT=/" "$DOFLINX_INI_FILE"
@@ -477,26 +483,26 @@ if [ -d "$HOME/pixelcade" ]; then
       sed -i 's|^MAME_FOLDER=.*$|MAME_FOLDER=/usr/games/|' "$DOFLINX_INI_FILE"
     fi
 
-    echo "DOFLinx.ini has been updated successfully."
+    echo -e "[INFO]${cyan} DOFLinx.ini has been updated successfully.${nc}"
   fi
 else
-  echo "Pixelcade folder not found at $HOME/pixelcade"
+  echo "${red}WARNING: Pixelcade not found at $HOME/pixelcade, please install Pixelcade first${nc}"
 fi
 
 #TODO add an undo param for this script
 
-echo -e "${green}[INFO]${nc} Cleaning up"
+echo -e "${cyan}[INFO]${nc} Cleaning up"
 cd ${HOME}/
 rm -r ${HOME}/doflinx/temp
 
 if [[ $install_successful == "true" ]]; then
-   echo -e "${green}[INFO]${nc} DOFLinx Installed"
-   echo -e "${green}[INFO]${nc} The guide can be found at https://doflinx.github.io/docs/"
-   echo -e "${green}[INFO]${nc} Support can be found at http://www.vpforums.org/index.php?showforum=104"
-   echo -e "${green}[INFO]${nc} Now setup DOFLinx to start at boot running"
-   echo -e "${green}[INFO]${nc} A default DOFLinx.ini has been installed in ./DOFLinx/config"
-   echo -e "${green}[INFO]${nc} You may need to customize parameters for your system in ./config/DOFLinx.ini for button input codes"
+   echo -e "${cyan}[INFO] DOFLinx Installed${nc}"
+   echo -e "${cyan}[INFO] The guide can be found at https://doflinx.github.io/docs/${nc}"
+   echo -e "${cyan}[INFO] Support can be found at http://www.vpforums.org/index.php?showforum=104${nc}"
+   echo -e "${cyan}[INFO] Now setup DOFLinx to start at boot running${nc}"
+   echo -e "${cyan}[INFO] A default DOFLinx.ini has been installed in ./DOFLinx/config${nc}"
+   echo -e "${cyan}[INFO] You may need to customize parameters for your system in ./config/DOFLinx.ini for button input codes${nc}"
 else
-  echo -e "${red}[ERROR]${nc} DOFLinx installation failed"
+  echo -e "${red}[ERROR]${nc} DOFLinx installation failed${nc}"
 fi
 echo ""
