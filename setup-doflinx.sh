@@ -351,15 +351,13 @@ if batocera-info | grep -q 'System'; then
    download_github_file "https://github.com/alinke/pixelcade-linux-builds/blob/main/batocera/doflinx/init.lua" "init.lua" "$DOFLINX_DIR"
    download_github_file "https://github.com/alinke/pixelcade-linux-builds/blob/main/batocera/doflinx/plugin.json" "plugin.json" "$DOFLINX_DIR"
 
-   #if on Batocera V41, we need to copy plugins to /usr/bin/mame/plugins also, this isn't need for V42 but is for V41
-   if [ "$batocera_version" = "41" ]; then
-      echo "Copying doflinx plugin to /usr/bin/mame/plugins for Batocera V41"
-      if [ ! -d "/usr/bin/mame/plugins" ]; then
-         mkdir -p /usr/bin/mame/plugins
-      fi
-      cp -r ${BATOCERA_PLUGIN_PATH}/doflinx /usr/bin/mame/plugins/
-      chmod a+x /usr/bin/mame/plugins/doflinx/DLSocket
+   #TO DO loading the plugin from userdata/saves/mame/plugins not yet working on Batocera so have to copy it here too
+   echo "Copying doflinx plugin to /usr/bin/mame/plugins for Batocera V41"
+   if [ ! -d "/usr/bin/mame/plugins" ]; then
+      mkdir -p /usr/bin/mame/plugins
    fi
+   cp -r ${BATOCERA_PLUGIN_PATH}/doflinx /usr/bin/mame/plugins/
+   chmod a+x /usr/bin/mame/plugins/doflinx/DLSocket
    #*****************************************************************
   
    echo "doflinx plugin installation completed."
