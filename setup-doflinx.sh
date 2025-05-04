@@ -7,6 +7,7 @@
 version=3
 install_successful=true
 batocera=false
+batocera_version=""
 batocera_40_plus_version=40
 RETROPIE_AUTOSTART_FILE="/opt/retropie/configs/all/autostart.sh"
 BATOCERA_MAME_GENERATOR_V41="/usr/lib/python3.11/site-packages/configgen/generators/mame/mameGenerator.py"
@@ -265,6 +266,13 @@ if test -f /proc/device-tree/model; then
       echo -e "${cyan}[INFO] ODroid N2 or N2+ detected...${nc}"
       odroidn2=true
    fi
+fi
+
+batocera_version="$(batocera-es-swissknife --version | cut -c1-2)" #get the version of Batocera as only Batocera V40 and above support services
+
+if [ "$machine_arch" != "arm64" ] && [ "$batocera_version" != "41" ] && [ "$batocera_version" != "42" ]; then
+   echo -e "${red}[ERROR] Sorry, arm64 architecture with Batocera version 41 or 42 is required at this time, exiting...${nc}"
+   exit 1
 fi
 
 if [[ $machine_arch == "default" ]]; then
