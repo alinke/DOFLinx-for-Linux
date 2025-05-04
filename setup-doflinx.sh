@@ -268,6 +268,24 @@ if test -f /proc/device-tree/model; then
    fi
 fi
 
+if [ "$pi4" = "true" ]; then
+    echo -e "\n${bold_red}[WARNING] Game performance with DOFLinx effects will be noticeably slower on your Raspberry Pi 4 at this time${nc}"
+    echo -e "${cyan}Are you sure you want to continue? (y/n)${nc}"
+    
+    read -r pi4_answer
+    
+    case ${pi4_answer:0:1} in
+        y|Y )
+            echo -e "${cyan}Continuing with installation...${nc}"
+            ;;
+        * )
+            echo -e "${cyan}Installation canceled.${nc}"
+            exit 1
+            ;;
+    esac
+fi
+
+
 batocera_version="$(batocera-es-swissknife --version | cut -c1-2)" #get the version of Batocera as only Batocera V40 and above support services
 
 if [ "$machine_arch" != "arm64" ] && [ "$batocera_version" != "42" ] && [ "$batocera_version" != "41" ] && [ "$batocera_version" != "40" ]; then
