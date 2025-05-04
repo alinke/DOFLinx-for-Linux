@@ -510,6 +510,9 @@ else
   echo -e "${red}[ERROR]${nc} DOFLinx installation failed${nc}"
 fi
 
+echo -e "${cyan}[INFO] Getting the latest DOFLinx MAME defintiion files (.mame)...${nc}"
+cd ${HOME}/pixlecade && ./pixelweb -update-doflinx
+
 echo -e "${cyan}[INFO] Now Starting DOFLinx...${nc}"
 cd ${HOME}/doflinx && ./DOFLinx PATH_INI=${HOME}/doflinx/config/DOFLinx.ini &
 
