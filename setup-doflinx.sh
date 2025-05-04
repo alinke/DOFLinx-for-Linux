@@ -571,27 +571,22 @@ fi
 echo -e "${cyan}[INFO] Getting the latest DOFLinx MAME game specific defintiions (.MAME files)...${nc}"
 cd ${HOME}/pixelcade && ./pixelweb -update-doflinx
 
-#echo -e "${cyan}[INFO] Now Starting DOFLinx...${nc}"
-#cd ${HOME}/doflinx && ./DOFLinx PATH_INI=${HOME}/doflinx/config/DOFLinx.ini &
-
-# Ask user if they want to reboot
 echo -e "\n${magenta}Please now reboot and DOFLinx effects will be loaded automatically on startup${nc}"
 echo -e "${magenta}Would you like to reboot now? (y/n)${nc}"
 
-# Read user input
 read -r answer
 
-# Process the answer
 case ${answer:0:1} in
     y|Y )
         echo -e "${magenta}System will reboot now...${nc}"
         sleep 2
-        # Try reboot command, if it fails try with sudo
         reboot || sudo reboot
         ;;
     * )
         echo -e "${red}Reboot skipped. Please remember to reboot your system later.${nc}"
         pause
+        echo -e "${cyan}[INFO] Now Starting DOFLinx...${nc}"
+        cd ${HOME}/doflinx && ./DOFLinx PATH_INI=${HOME}/doflinx/config/DOFLinx.ini &
         ;;
 esac
 
