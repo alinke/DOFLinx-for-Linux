@@ -353,7 +353,7 @@ if batocera-info | grep -q 'System'; then
 
    #if on Batocera V41, we need to copy plugins to /usr/bin/mame/plugins also, this isn't need for V42 but is for V41
    if [ "$batocera_version" = "41" ]; then
-      echo "Copying plugins to /usr/bin/mame/plugins"
+      echo "Copying doflinx plugin to /usr/bin/mame/plugins for Batocera V41"
       if [ ! -d "/usr/bin/mame/plugins" ]; then
          mkdir -p /usr/bin/mame/plugins
       fi
