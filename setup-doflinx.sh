@@ -271,7 +271,7 @@ fi
 batocera_version="$(batocera-es-swissknife --version | cut -c1-2)" #get the version of Batocera as only Batocera V40 and above support services
 
 if [ "$machine_arch" != "arm64" ] && [ "$batocera_version" != "42" ] && [ "$batocera_version" != "41" ] && [ "$batocera_version" != "40" ]; then
-   echo -e "${red}[ERROR] Sorry, arm64 architecture with Batocera version 41 or 42 is required at this time, exiting...${nc}"
+   echo -e "${red}[ERROR] Sorry, arm64 architecture with Batocera version 40, 41, or 42 is required at this time, exiting...${nc}"
    exit 1
 fi
 
