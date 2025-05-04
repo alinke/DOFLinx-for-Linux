@@ -95,7 +95,7 @@ backup_file() {
 }
 
 restore_files() {
-    echo -e "${yellow}Uninstall mode detected. Restoring original files...${nc}"
+    echo -e "${magenta}Uninstall mode detected. Restoring original files...${nc}"
     
     if [ ! -d "$BACKUP_DIR" ]; then
         echo -e "${red}No backups found to restore.${nc}"
@@ -105,10 +105,10 @@ restore_files() {
     if [ -f "$BACKUP_DIR/mameGenerator.py.original" ]; then
         # Try to determine which version to restore to
         if [ -f "$BATOCERA_MAME_GENERATOR_V41" ]; then
-            echo "Restoring: $BATOCERA_MAME_GENERATOR_V41"
+            echo -e "${cyan}[INFO] Restoring: $BATOCERA_MAME_GENERATOR_V41${nc}"
             cp "$BACKUP_DIR/mameGenerator.py.original" "$BATOCERA_MAME_GENERATOR_V41"
         elif [ -f "$BATOCERA_MAME_GENERATOR_V42" ]; then
-            echo "Restoring: $BATOCERA_MAME_GENERATOR_V42"
+            echo -e "${cyan}[INFO] Restoring: $BATOCERA_MAME_GENERATOR_V42${nc}"
             cp "$BACKUP_DIR/mameGenerator.py.original" "$BATOCERA_MAME_GENERATOR_V42"
         else
             echo -e "${red}Could not determine Batocera MAME generator path for restoration${nc}"
@@ -117,13 +117,13 @@ restore_files() {
     
     # Restore Batocera config file
     if [ -f "$BACKUP_DIR/batocera.conf.original" ] && [ -f "$BATOCERA_CONFIG_FIlE" ]; then
-        echo "Restoring: $BATOCERA_CONFIG_FIlE"
+        echo -e "${cyan}[INFO] Restoring: $BATOCERA_CONFIG_FIlE${nc}"
         cp "$BACKUP_DIR/batocera.conf.original" "$BATOCERA_CONFIG_FIlE"
     fi
     
     # Restore RetroPie autostart file if it was modified
     if [ -f "$BACKUP_DIR/autostart.sh.original" ] && [ -f "$RETROPIE_AUTOSTART_FILE" ]; then
-        echo "Restoring: $RETROPIE_AUTOSTART_FILE"
+        echo -e "${cyan}[INFO] Restoring: $RETROPIE_AUTOSTART_FILE${nc}"
         cp "$BACKUP_DIR/autostart.sh.original" "$RETROPIE_AUTOSTART_FILE"
     fi
     
@@ -138,14 +138,14 @@ restore_files() {
     fi
     
     if [ -d "${PLUGIN_PATH}/doflinx" ]; then
-        echo "Removing DOFLinx plugin from MAME plugins directory"
+        echo -e "${cyan}[INFO] Removing DOFLinx plugin from MAME plugins directory: ${PLUGIN_PATH}/doflinx${nc}"
         rm -rf "${PLUGIN_PATH}/doflinx" || sudo rm -rf "${PLUGIN_PATH}/doflinx"
     fi
     
     # Remove DOFLinx from Batocera services if applicable
     if [ "$batocera" = "true" ]; then
         if [ -f "${HOME}/services/doflinx" ]; then
-            echo "Disabling and removing DOFLinx service"
+            echo -e "${cyan}[INFO] Disabling and removing DOFLinx service${nc}"
             batocera-services disable doflinx 2>/dev/null
             rm -f "${HOME}/services/doflinx"
         fi
@@ -160,11 +160,11 @@ restore_files() {
     
     # Remove DOFLinx installation directory
     if [ -d "${HOME}/doflinx" ]; then
-        echo "Removing DOFLinx installation directory"
+        echo -e "${cyan}[INFO] Removing DOFLinx installation directory${nc}"
         rm -rf "${HOME}/doflinx"
     fi
     
-    echo -e "${green}Uninstallation complete. All modified files have been restored.${nc}"
+    echo -e "${magenta}DOFLinx Uninstallation complete. All modified files have been restored${nc}"
     exit 0
 }
 
@@ -180,25 +180,25 @@ if [ "$commandLineArg" = "undo" ]; then
 fi
 
 echo -e ""
-echo -e "       ${cyan}DOFLinx for Linux : Installer Version $version${nc}    "
+echo -e "       ${magenta}DOFLinx for Linux : Installer Version $version${nc}    "
 echo -e ""
 echo -e "This script will install the DOFLinx software in $HOME/doflinx"
-echo -e "Plese ensure you have at least 1 GB of free disk space in $HOME"
+echo -e "You'll need at least 300 MB of free disk space in $HOME"
 echo -e ""
-pause
 
-
-# If this is an existing installation then DOFLinx could already be running
+# If this is an existing installation then DOFLinx could already be running so let's stop it
 if test -f ${HOME}/doflinx/DOFLinx; then
-   echo "[INFO] Existing DOFLinx installation found"
+   echo -e "${cyan}[INFO] Existing DOFLinx installation found${nc}"
    if pgrep -x "DOFLinx" > /dev/null; then
-     echo -e "${green}[INFO]${nc} Stopping DOFLinx"
+     echo -e "${cyan}[INFO] Stopping DOFLinx${nc}"
      ${HOME}/doflinx/DOFLinxMsg QUIT
   fi
 fi
 
 if ! test -f ${HOME}/pixelcade/pixelweb; then
-   echo -e "${green}[INFO]${nc} No Pixelcade installation can be seen at ${HOME}/pixelcade"
+   echo -e "${red}[INFO] No Pixelcade installation can be seen at ${HOME}/pixelcade${nc}"
+   echo -e "${red}[INFO] It's recommended to quit now and install the Pixelcade software first from http://pixelcade.org${nc}"
+   pause
 fi
 
 # The possible platforms are:
@@ -209,55 +209,59 @@ fi
 # linux_arm_v7
 
 if uname -m | grep -q 'armv6'; then
-   echo -e "${yellow}arm_v6 Detected...${nc}"
+   echo -e "${cyan}arm_v6 Detected...${nc}"
    machine_arch=arm_v6
 fi
 
 if uname -m | grep -q 'armv7'; then
-   echo -e "${yellow}arm_v7 Detected...${nc}"
+   echo -e "${cyan}arm_v7 Detected...${nc}"
    machine_arch=arm_v7
 fi
 
 if uname -m | grep -q 'aarch32'; then
-   echo -e "${yellow}aarch32 Detected...${nc}"
+   echo -e "${cyan}aarch32 Detected...${nc}"
    aarch32=arm_v7
 fi
 
 if uname -m | grep -q 'aarch64'; then
-   echo -e "${green}[INFO]${nc} aarch64 Detected..."
+   echo -e "${cyan}[INFO] aarch64 Detected...${nc}"
    machine_arch=arm64
 fi
 
 if uname -m | grep -q 'x86'; then
    if uname -m | grep -q 'x86_64'; then
-      echo -e "${green}[INFO]${nc}x86 64-bit Detected..."
+      echo -e "${cyan}[INFO] x86 64-bit Detected...${nc}"
       machine_arch=x64
    else
-      echo -e "${red}[ERROR]${nc}x86 32-bit Detected...not supported"
+      echo -e "${red}[ERROR] x86 32-bit Detected...not supported${nc}"
       machine_arch=386
    fi
 fi
 
 if uname -m | grep -q 'amd64'; then
-   echo -e "${green}[INFO]${nc}x86 64-bit Detected..."
+   echo -e "${cyan}[INFO]x86 64-bit Detected...${nc}"
    machine_arch=x64
 fi
 
 if test -f /proc/device-tree/model; then
    if cat /proc/device-tree/model | grep -q 'Raspberry Pi 3'; then
-      echo -e "${yellow}Raspberry Pi 3 detected...${nc}"
+      echo -e "${cyan}[INFO] Raspberry Pi 3 detected...${nc}"
       pi3=true
    fi
    if cat /proc/device-tree/model | grep -q 'Pi 4'; then
-      echo -e "${yellow}Raspberry Pi 4 detected...${nc}"
+      echo -e "${cyan}[INFO] Raspberry Pi 4 detected...${nc}"
       pi4=true
    fi
+   if cat /proc/device-tree/model | grep -q 'Pi 5'; then
+      echo -e "${cyan}[INFO] Raspberry Pi 5 detected...${nc}"
+      pi5=true
+   fi
    if cat /proc/device-tree/model | grep -q 'Pi Zero W'; then
-      echo -e "${yellow}Raspberry Pi Zero detected...${nc}"
+      echo -e "${cyan}[INFO] Raspberry Pi Zero detected...${nc}"
       pizero=true
    fi
    if cat /proc/device-tree/model | grep -q 'ODROID-N2'; then
-      echo -e "${yellow}ODroid N2 or N2+ detected...${nc}"
+      echo -e "${cyan}[INFO] ODroid N2 or N2+ detected...${nc}"
       odroidn2=true
    fi
 fi
@@ -349,7 +353,7 @@ fi
 
 # Checking for Batocera installation
 if batocera-info | grep -q 'System'; then
-   echo -e "${green}[INFO]${nc}Batocera Detected"
+   echo -e "${cyan}[INFO] Batocera Detected${nc}"
    batocera_version="$(batocera-es-swissknife --version | cut -c1-2)" #get the version of Batocera as only Batocera V40 and above support services
    if [[ $batocera_version -ge $batocera_40_plus_version ]]; then #we need to add the service file and enable in services
       if [[ ! -d ${HOME}/services ]]; then #does the ES scripts folder exist, make it if not
@@ -360,9 +364,8 @@ if batocera-info | grep -q 'System'; then
       chmod +x ${HOME}/services/doflinx
       sleep 1
       batocera-services enable doflinx 
-      echo -e "${green}[INFO] DOFLinx added to Batocera services for Batocera V40 and up${nc}"
+      echo -e "${cyan}[INFO] DOFLinx added as a Batocera service for auto-start${nc}"
    fi 
-
    #TODO this is a temp fix until doflinx is updated
    #****************************************************************
    DOFLINX_DIR="${BATOCERA_PLUGIN_PATH}/doflinx"
@@ -391,15 +394,15 @@ if batocera-info | grep -q 'System'; then
    chmod a+x /usr/bin/mame/plugins/doflinx/DLSocket
    #*****************************************************************
   
-   echo "doflinx plugin installation completed."
+   echo "DOFLinx plugin installation completed"
     
    # Determine the correct path based on the Batocera version
    if [ "$batocera_version" = "41" ]; then
         MAME_GENERATOR="$BATOCERA_MAME_GENERATOR_V41"
-        echo "Detected Batocera V41"
+        echo -e "${cyan}[INFO] Detected Batocera V41${nc}"
    elif [ "$batocera_version" = "42" ]; then
         MAME_GENERATOR="$BATOCERA_MAME_GENERATOR_V42"
-        echo "Detected Batocera V42"
+        echo -e "${cyan}[INFO] Detected Batocera V42${nc}"
    else
         # Check which path exists
         if [ -f "$BATOCERA_MAME_GENERATOR_V41" ]; then
@@ -444,7 +447,7 @@ if batocera-info | grep -q 'System'; then
             echo "$BATOCERA_CONFIG_LINE1" >> "$BATOCERA_CONFIG_FIlE"
             echo -e "${cyan}[INFO] Added: $BATOCERA_CONFIG_LINE1${nc}"
         else
-            echo -e "${cyan}[INFO] $BATOCERA_CONFIG_LINE1 already exists${nc}"
+            echo -e "${cyan}[INFO] Skipped: $BATOCERA_CONFIG_LINE1 already exists${nc}"
         fi
 
         if ! grep -q "^$BATOCERA_CONFIG_LINE2$" "$BATOCERA_CONFIG_FIlE"; then
@@ -465,12 +468,12 @@ if batocera-info | grep -q 'System'; then
    fi
 
 else
-  echo -e "${yellow}[ERROR]${nc} Not on Batocera, skipping Batocera setup..."
+  echo -e "${cyan}[INFO] Not on Batocera, skipping Batocera setup${nc}"
 fi
 
 # Checking for Retropie installation
 if [[ -f "$RETROPIE_AUTOSTART_FILE" ]]; then
-  echo "${green}[INFO]${nc}RetroPie Detected..."
+  echo "${cyan}[INFO]RetroPie Detected${nc}"
   backup_file "$RETROPIE_AUTOSTART_FILE" "autostart.sh.original"
   if grep -q "DOFLinx" "$RETROPIE_AUTOSTART_FILE"; then
       echo-e  "${green}[INFO]${nc}DOFLinx entry already exists in $RETROPIE_AUTOSTART_FILE. Skipping."
@@ -520,7 +523,7 @@ if [ -d "$HOME/pixelcade" ]; then
       sed -i 's|^MAME_FOLDER=.*$|MAME_FOLDER=/usr/games/|' "$DOFLINX_INI_FILE"
     fi
 
-    echo -e "[INFO]${cyan} DOFLinx.ini has been updated successfully.${nc}"
+    echo -e "${cyan}[INFO] DOFLinx.ini has been updated${nc}"
   fi
 else
   echo "${red}WARNING: Pixelcade not found at $HOME/pixelcade, please install Pixelcade first${nc}"
@@ -531,22 +534,57 @@ cd ${HOME}/
 rm -r ${HOME}/doflinx/temp
 
 if [[ $install_successful == "true" ]]; then
-   echo -e "${bold_green}[INFO] DOFLinx in game MAME effects Installed${nc}"
+   echo -e "${cyan}[INFO] DOFLinx in game MAME effects installed${nc}"
     if [ "$batocera" = "true" ]; then
-         MAME_VERSION=$(/usr/bin/mame/mame -version | head -n 1 | awk '{print $2}')
-         echo -e "${yellow}Please note your MAME core has been switched to stand alone MAME version ${magenta}${MAME_VERSION}${yellow}, you'll need to make sure your MAME romsets are compatible with this version of MAME${NC}"
+         # Get the MAME version - handling different possible output formats
+         MAME_OUTPUT=$(/usr/bin/mame/mame -version)
+         # First try to extract just the version number
+         if echo "$MAME_OUTPUT" | grep -q -E '^[0-9]+\.[0-9]+'; then
+            # Format like "0.268 (unknown)" - version is the first word
+            MAME_VERSION=$(echo "$MAME_OUTPUT" | awk '{print $1}')
+         elif echo "$MAME_OUTPUT" | grep -q -E 'MAME [0-9]+\.[0-9]+'; then
+            # Format like "MAME 0.268 (Jun 12 2024)" - version is the second word
+            MAME_VERSION=$(echo "$MAME_OUTPUT" | awk '{print $2}')
+         else
+            # Fallback - get the first number that looks like a version
+            MAME_VERSION=$(echo "$MAME_OUTPUT" | grep -o -E '[0-9]+\.[0-9]+' | head -1)
+         fi
+         echo -e "${bg_magenta}${white}Please note your MAME core in Batocera has been switched to stand alone MAME version ${bold}${MAME_VERSION}${normal}${white}, ensure your MAME romset is compatible with this version${nc}"
     fi
    echo -e "${cyan}[INFO] DOFLinx guide can be found at https://doflinx.github.io/docs/${nc}"
    echo -e "${cyan}[INFO] Support can be found at http://www.vpforums.org/index.php?showforum=104${nc}"
    echo -e "${cyan}[INFO] You can customize DOFLinx parameters in ${HOME}/doflinx/config/DOFLinx.ini for button input codes or other options${nc}"
+   echo -e "${cyan}[INFO] If you want to uninstall DOFLinx, re-run this script and append: undo${nc}"
 else
   echo -e "${bold_red}[ERROR] DOFLinx installation failed${nc}"
 fi
 
-echo -e "${cyan}[INFO] Getting the latest DOFLinx MAME defintiion files (.mame)...${nc}"
-cd ${HOME}/pixlecade && ./pixelweb -update-doflinx
+echo -e "${cyan}[INFO] Getting the latest DOFLinx MAME game specific defintiions (.MAME files)...${nc}"
+cd ${HOME}/pixelcade && ./pixelweb -update-doflinx
 
-echo -e "${cyan}[INFO] Now Starting DOFLinx...${nc}"
-cd ${HOME}/doflinx && ./DOFLinx PATH_INI=${HOME}/doflinx/config/DOFLinx.ini &
+#echo -e "${cyan}[INFO] Now Starting DOFLinx...${nc}"
+#cd ${HOME}/doflinx && ./DOFLinx PATH_INI=${HOME}/doflinx/config/DOFLinx.ini &
+
+# Ask user if they want to reboot
+echo -e "\n${magenta}Please now reboot and DOFLinx effects will be loaded automatically on startup${nc}"
+echo -e "${magenta}Would you like to reboot now? (y/n)${nc}"
+
+# Read user input
+read -r answer
+
+# Process the answer
+case ${answer:0:1} in
+    y|Y )
+        echo -e "${magenta}System will reboot now...${nc}"
+        sleep 2
+        # Try reboot command, if it fails try with sudo
+        reboot || sudo reboot
+        ;;
+    * )
+        echo -e "${red}Reboot skipped. Please remember to reboot your system later.${nc}"
+        echo -e "${red}Press any key to continue...${nc}"
+        pause
+        ;;
+esac
 
 echo ""
