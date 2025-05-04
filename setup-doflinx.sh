@@ -352,7 +352,7 @@ if batocera-info | grep -q 'System'; then
    download_github_file "https://github.com/alinke/pixelcade-linux-builds/blob/main/batocera/doflinx/plugin.json" "plugin.json" "$DOFLINX_DIR"
 
    #TO DO loading the plugin from userdata/saves/mame/plugins not yet working on Batocera so have to copy it here too
-   echo "Copying doflinx plugin to /usr/bin/mame/plugins for Batocera V41"
+   echo "Copying doflinx plugin to /usr/bin/mame/plugins for Batocera"
    if [ ! -d "/usr/bin/mame/plugins" ]; then
       mkdir -p /usr/bin/mame/plugins
    fi
