@@ -475,9 +475,6 @@ if [ -d "$HOME/pixelcade" ]; then
     sed -i "s/^PATH_MAME=.*$/PATH_MAME=${ESCAPED_HOME}\/pixelcade\/DOFLinx\/DOFLinx_MAME\//" "$DOFLINX_INI_FILE"  
     sed -i "s/^PATH_PIXELCADE=.*$/PATH_PIXELCADE=${ESCAPED_HOME}\/pixelcade\//" "$DOFLINX_INI_FILE"
     sed -i "s/^PATH_HI2TXT=.*$/PATH_HI2TXT=${ESCAPED_HOME}\/pixelcade\/hi2txt\//" "$DOFLINX_INI_FILE"
-    sed -i "s/^PATH_HI2TXT=/#PATH_HI2TXT=/" "$DOFLINX_INI_FILE"
-    # Uncomment PIXELCADE_LCD_USE_NETWORK_ADDRESS line
-    sed -i 's|^#PIXELCADE_LCD_USE_NETWORK_ADDRESS=1|PIXELCADE_LCD_USE_NETWORK_ADDRESS=1|' "$DOFLINX_INI_FILE"
 
     # Make sure PIXELCADE_GAME_START_HIGHSCORE line is commented out because the Pixelcade Batocera script handles high scores
     sed -i 's|^PIXELCADE_GAME_START_HIGHSCORE=1|#PIXELCADE_GAME_START_HIGHSCORE=1|' "$DOFLINX_INI_FILE"
