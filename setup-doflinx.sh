@@ -311,7 +311,6 @@ else
 
         # Check if we are on Batocera and if so, change the plugin path
         if batocera-info 2>/dev/null | grep -q 'System'; then
-            echo "Detected Batocera system"
             PLUGIN_PATH="${BATOCERA_PLUGIN_PATH}"
         else
             echo "Not on Batocera, finding plugin path"
@@ -362,8 +361,9 @@ fi
 
 # Checking for Batocera installation
 if batocera-info | grep -q 'System'; then
-   echo -e "${cyan}[INFO] Batocera Detected${nc}"
    batocera_version="$(batocera-es-swissknife --version | cut -c1-2)" #get the version of Batocera as only Batocera V40 and above support services
+   echo -e "${cyan}[INFO] Batocera Version ${batocera_version} Detected${nc}"
+   
    if [[ $batocera_version -ge $batocera_40_plus_version ]]; then #we need to add the service file and enable in services
       if [[ ! -d ${HOME}/services ]]; then #does the ES scripts folder exist, make it if not
          mkdir ${HOME}/services
