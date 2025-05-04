@@ -4,6 +4,8 @@
 case "$1" in
     start)
         # Code in here will only be executed on boot.
+        sleep 1
+        # Note if sleep 1 is not there, then sometimes DOFLinx will crash on boot
         cd /userdata/system/doflinx && ./DOFLinx PATH_INI=/userdata/system/doflinx/config/DOFLinx.ini &
         ;;
     stop)

@@ -324,7 +324,8 @@ if batocera-info | grep -q 'System'; then
       if [[ ! -d ${HOME}/services ]]; then #does the ES scripts folder exist, make it if not
          mkdir ${HOME}/services
       fi
-      wget -O ${HOME}/services/doflinx https://raw.githubusercontent.com/DOFLinx/DOFLinx-for-Linux/main/batocera/doflinx
+      #TODO change this back to DOFLinx repo later
+      wget -O ${HOME}/services/doflinx https://raw.githubusercontent.com/alinke/DOFLinx-for-Linux/main/batocera/doflinx
       chmod +x ${HOME}/services/doflinx
       sleep 1
       batocera-services enable doflinx 
@@ -349,6 +350,16 @@ if batocera-info | grep -q 'System'; then
    fi   
    download_github_file "https://github.com/alinke/pixelcade-linux-builds/blob/main/batocera/doflinx/init.lua" "init.lua" "$DOFLINX_DIR"
    download_github_file "https://github.com/alinke/pixelcade-linux-builds/blob/main/batocera/doflinx/plugin.json" "plugin.json" "$DOFLINX_DIR"
+
+   #if on Batocera V41, we need to copy plugins to /usr/bin/mame/plugins also, this isn't need for V42 but is for V41
+   if [ "$batocera_version" = "41" ]; then
+      echo "Copying plugins to /usr/bin/mame/plugins"
+      if [ ! -d "/usr/bin/mame/plugins" ]; then
+         sudo mkdir -p /usr/bin/mame/plugins
+      fi
+      sudo cp -r ${BATOCERA_PLUGIN_PATH}/doflinx /usr/bin/mame/plugins/
+      sudo chmod a+x /usr/bin/mame/plugins/doflinx/DLSocket
+   fi
    #*****************************************************************
   
    echo "doflinx plugin installation completed."
@@ -491,7 +502,7 @@ fi
 
 #TODO add an undo param for this script
 
-echo -e "${cyan}[INFO]${nc} Cleaning up"
+echo -e "${cyan}[INFO] Cleaning up${nc} "
 cd ${HOME}/
 rm -r ${HOME}/doflinx/temp
 
