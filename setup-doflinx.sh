@@ -355,10 +355,10 @@ if batocera-info | grep -q 'System'; then
    if [ "$batocera_version" = "41" ]; then
       echo "Copying plugins to /usr/bin/mame/plugins"
       if [ ! -d "/usr/bin/mame/plugins" ]; then
-         sudo mkdir -p /usr/bin/mame/plugins
+         mkdir -p /usr/bin/mame/plugins
       fi
-      sudo cp -r ${BATOCERA_PLUGIN_PATH}/doflinx /usr/bin/mame/plugins/
-      sudo chmod a+x /usr/bin/mame/plugins/doflinx/DLSocket
+      cp -r ${BATOCERA_PLUGIN_PATH}/doflinx /usr/bin/mame/plugins/
+      chmod a+x /usr/bin/mame/plugins/doflinx/DLSocket
    fi
    #*****************************************************************
   
