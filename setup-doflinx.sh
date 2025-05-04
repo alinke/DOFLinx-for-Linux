@@ -18,11 +18,42 @@ DOFLINX_INI_FILE="${HOME}/doflinx/config/DOFLinx.ini"
 RETROPIE_LINE_TO_ADD="cd ~/doflinx && ./DOFLinx -PATH_INI=~/doflinx/config/DOFLinx.ini"
 
 NEWLINE=$'\n'
+# Color definitions
 cyan='\033[0;36m'
 red='\033[0;31m'
 yellow='\033[0;33m'
 green='\033[0;32m'
-nc='\033[0m'
+magenta='\033[0;35m'
+orange='\033[0;33m' 
+
+# Additional useful colors
+blue='\033[0;34m'
+purple='\033[0;35m'  # Same as magenta in basic ANSI
+white='\033[1;37m'
+black='\033[0;30m'
+gray='\033[1;30m'
+light_blue='\033[1;34m'
+light_green='\033[1;32m'
+light_cyan='\033[1;36m'
+
+# Bold versions
+bold='\033[1m'
+bold_red='\033[1;31m'
+bold_green='\033[1;32m'
+bold_yellow='\033[1;33m'
+
+# Background colors
+bg_black='\033[40m'
+bg_red='\033[41m'
+bg_green='\033[42m'
+bg_yellow='\033[43m'
+bg_blue='\033[44m'
+bg_magenta='\033[45m'
+bg_cyan='\033[46m'
+bg_white='\033[47m'
+
+# Reset color after use
+nc='\033[0m' # No Color
 
 BACKUP_DIR="${HOME}/doflinx/backup"
 if batocera-info | grep -q 'System'; then
@@ -500,14 +531,16 @@ cd ${HOME}/
 rm -r ${HOME}/doflinx/temp
 
 if [[ $install_successful == "true" ]]; then
-   echo -e "${cyan}[INFO] DOFLinx Installed${nc}"
-   echo -e "${cyan}[INFO] The guide can be found at https://doflinx.github.io/docs/${nc}"
+   echo -e "${bold_green}[INFO] DOFLinx in game MAME effects Installed${nc}"
+    if [ "$batocera" = "true" ]; then
+         MAME_VERSION=$(/usr/bin/mame/mame -version | head -n 1 | awk '{print $2}')
+         echo -e "${yellow}Please note your MAME core has been switched to stand alone MAME version ${magenta}${MAME_VERSION}${yellow}, you'll need to make sure your MAME romsets are compatible with this version of MAME${NC}"
+    fi
+   echo -e "${cyan}[INFO] DOFLinx guide can be found at https://doflinx.github.io/docs/${nc}"
    echo -e "${cyan}[INFO] Support can be found at http://www.vpforums.org/index.php?showforum=104${nc}"
-   echo -e "${cyan}[INFO] Now setup DOFLinx to start at boot running${nc}"
-   echo -e "${cyan}[INFO] A default DOFLinx.ini has been installed in ./DOFLinx/config${nc}"
-   echo -e "${cyan}[INFO] You may need to customize parameters for your system in ./config/DOFLinx.ini for button input codes${nc}"
+   echo -e "${cyan}[INFO] You can customize DOFLinx parameters in ${HOME}/doflinx/config/DOFLinx.ini for button input codes or other options${nc}"
 else
-  echo -e "${red}[ERROR]${nc} DOFLinx installation failed${nc}"
+  echo -e "${bold_red}[ERROR] DOFLinx installation failed${nc}"
 fi
 
 echo -e "${cyan}[INFO] Getting the latest DOFLinx MAME defintiion files (.mame)...${nc}"
