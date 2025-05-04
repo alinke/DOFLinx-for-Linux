@@ -10,7 +10,7 @@ batocera=false
 batocera_version=""
 batocera_40_plus_version=40
 RETROPIE_AUTOSTART_FILE="/opt/retropie/configs/all/autostart.sh"
-BATOCERA_MAME_GENERATOR_V41="/usr/lib/python3.11/site-packages/configgen/generators/mame/mameGenerator.py"
+BATOCERA_MAME_GENERATOR_V41="/usr/lib/python3.11/site-packages/configgen/generators/mame/mameGenerator.py" #this is the same for V40 which uses mame 265
 BATOCERA_MAME_GENERATOR_V42="/usr/lib/python3.12/site-packages/configgen/generators/mame/mameGenerator.py"
 BATOCERA_CONFIG_FIlE="/userdata/system/batocera.conf"
 BATOCERA_CONFIG_LINE1="mame.core=mame"
@@ -270,7 +270,7 @@ fi
 
 batocera_version="$(batocera-es-swissknife --version | cut -c1-2)" #get the version of Batocera as only Batocera V40 and above support services
 
-if [ "$machine_arch" != "arm64" ] && [ "$batocera_version" != "41" ] && [ "$batocera_version" != "42" ]; then
+if [ "$machine_arch" != "arm64" ] && [ "$batocera_version" != "42" ] && [ "$batocera_version" != "41" ] && [ "$batocera_version" != "40" ]; then
    echo -e "${red}[ERROR] Sorry, arm64 architecture with Batocera version 41 or 42 is required at this time, exiting...${nc}"
    exit 1
 fi
@@ -406,7 +406,10 @@ if batocera-info | grep -q 'System'; then
    echo "DOFLinx plugin installation completed"
     
    # Determine the correct path based on the Batocera version
-   if [ "$batocera_version" = "41" ]; then
+   if [ "$batocera_version" = "40" ]; then
+        MAME_GENERATOR="$BATOCERA_MAME_GENERATOR_V41"
+        echo -e "${cyan}[INFO] Detected Batocera V40${nc}"
+   elif [ "$batocera_version" = "41" ]; then
         MAME_GENERATOR="$BATOCERA_MAME_GENERATOR_V41"
         echo -e "${cyan}[INFO] Detected Batocera V41${nc}"
    elif [ "$batocera_version" = "42" ]; then
