@@ -4,7 +4,7 @@
 # wget https://raw.githubusercontent.com/alinke/DOFLinx-for-Linux/refs/heads/main/setup-doflinx.sh && chmod +x setup-doflinx.sh && ./setup-doflinx.sh
 # /usr/bin/emulatorlauncher -system mame -rom /userdata/roms/mame/1942.zip #for testing game launches in Batocera from command line
 
-version=3
+version=4
 install_successful=true
 batocera=false
 batocera_version=""
@@ -15,7 +15,7 @@ BATOCERA_MAME_GENERATOR_V42="/usr/lib/python3.12/site-packages/configgen/generat
 BATOCERA_CONFIG_FIlE="/userdata/system/batocera.conf"
 BATOCERA_CONFIG_LINE1="mame.core=mame"
 BATOCERA_CONFIG_LINE2="mame.emulator=mame"
-BATOCERA_PLUGIN_PATH="/userdata/saves/mame/plugins"
+BATOCERA_PLUGIN_PATH="/userdata/saves/mame/plugins" #Note Batocera will not look here so work around is we create a symlink from this folder to /usr/bin/mame/plugins
 DOFLINX_INI_FILE="${HOME}/doflinx/config/DOFLinx.ini"
 RETROPIE_LINE_TO_ADD="cd ~/doflinx && ./DOFLinx -PATH_INI=~/doflinx/config/DOFLinx.ini"
 
@@ -285,7 +285,6 @@ if [ "$pi4" = "true" ]; then
     esac
 fi
 
-
 batocera_version="$(batocera-es-swissknife --version | cut -c1-2)" #get the version of Batocera as only Batocera V40 and above support services
 
 if [ "$machine_arch" != "arm64" ] && [ "$batocera_version" != "42" ] && [ "$batocera_version" != "41" ] && [ "$batocera_version" != "40" ]; then
@@ -378,7 +377,7 @@ if [ $? -ne 0 ]; then
 fi
 
 # Checking for Batocera installation
-if batocera-info | grep -q 'System'; then
+if [ "$batocera" = "true" ]; then
    batocera_version="$(batocera-es-swissknife --version | cut -c1-2)" #get the version of Batocera as only Batocera V40 and above support services
    echo -e "${cyan}[INFO] Batocera Version ${batocera_version} Detected${nc}"
    
@@ -411,17 +410,16 @@ if batocera-info | grep -q 'System'; then
    fi   
    download_github_file "https://github.com/alinke/pixelcade-linux-builds/blob/main/batocera/doflinx/init.lua" "init.lua" "$DOFLINX_DIR"
    download_github_file "https://github.com/alinke/pixelcade-linux-builds/blob/main/batocera/doflinx/plugin.json" "plugin.json" "$DOFLINX_DIR"
+   #*****************************************************************
 
-   #TO DO loading the plugin from userdata/saves/mame/plugins not yet working on Batocera so have to copy it here too
-   echo "Copying doflinx plugin to /usr/bin/mame/plugins for Batocera"
+   # Check if directory exists and create it if needed
    if [ ! -d "/usr/bin/mame/plugins" ]; then
       mkdir -p /usr/bin/mame/plugins
    fi
-   cp -r ${BATOCERA_PLUGIN_PATH}/doflinx /usr/bin/mame/plugins/
-   chmod a+x /usr/bin/mame/plugins/doflinx/DLSocket
-   #*****************************************************************
-  
-   echo "DOFLinx plugin installation completed"
+
+   # Create the symlink (will overwrite if already exists)
+   ln -sf /userdata/saves/mame/plugins/doflinx /usr/bin/mame/plugins/doflinx
+   echo -e "${cyan}[INFO] MAME DOFLinx plugin installed${nc}"
     
    # Determine the correct path based on the Batocera version
    if [ "$batocera_version" = "40" ]; then
