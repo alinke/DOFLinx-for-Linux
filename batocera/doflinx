@@ -8,7 +8,7 @@ case "$1" in
         chmod +x /etc/profile.d/pixelcade_path.sh
         # Also export for current environment
         export PATH=/userdata/system/pixelcade/jdk/bin:$PATH
-        sleep 1
+        sleep 5
         # Note if sleep 1 is not there, then sometimes DOFLinx will crash on boot
         cd /userdata/system/doflinx && ./DOFLinx PATH_INI=/userdata/system/doflinx/config/DOFLinx.ini &
         ;;
