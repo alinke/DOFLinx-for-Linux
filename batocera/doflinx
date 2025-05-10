@@ -6,8 +6,12 @@ case "$1" in
         # Code in here will only be executed on boot.
         echo "export PATH=/userdata/system/pixelcade/jdk/bin:\$PATH" > /etc/profile.d/pixelcade_path.sh
         chmod +x /etc/profile.d/pixelcade_path.sh
-        # Also export for current environment
+        # set the java path, DOFLinx needs it
         export PATH=/userdata/system/pixelcade/jdk/bin:$PATH
+        # Re-create the plugin symblink in case it got blown away
+        if [ ! -L "/usr/bin/mame/plugins/doflinx" ]; then
+            ln -sf /userdata/saves/mame/plugins/doflinx /usr/bin/mame/plugins/doflinx
+        fi
         sleep 5
         # Note if sleep 1 is not there, then sometimes DOFLinx will crash on boot
         cd /userdata/system/doflinx && ./DOFLinx PATH_INI=/userdata/system/doflinx/config/DOFLinx.ini &
