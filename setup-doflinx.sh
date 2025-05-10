@@ -4,7 +4,7 @@
 # wget https://raw.githubusercontent.com/alinke/DOFLinx-for-Linux/refs/heads/main/setup-doflinx.sh && chmod +x setup-doflinx.sh && ./setup-doflinx.sh
 # /usr/bin/emulatorlauncher -system mame -rom /userdata/roms/mame/1942.zip #for testing game launches in Batocera from command line
 
-version=4
+version=5
 install_successful=true
 batocera=false
 batocera_version=""
@@ -15,7 +15,7 @@ BATOCERA_MAME_GENERATOR_V42="/usr/lib/python3.12/site-packages/configgen/generat
 BATOCERA_CONFIG_FIlE="/userdata/system/batocera.conf"
 BATOCERA_CONFIG_LINE1="mame.core=mame"
 BATOCERA_CONFIG_LINE2="mame.emulator=mame"
-BATOCERA_PLUGIN_PATH="/userdata/saves/mame/plugins" #Note Batocera will not look here so work around is we create a symlink from this folder to /usr/bin/mame/plugins
+BATOCERA_PLUGIN_PATH="/userdata/saves/mame/plugins" #Note Batocera will not look here so work around is we create a symlink from this folder to /usr/bin/mame/plugins/doflinx
 DOFLINX_INI_FILE="${HOME}/doflinx/config/DOFLinx.ini"
 RETROPIE_LINE_TO_ADD="cd ~/doflinx && ./DOFLinx -PATH_INI=~/doflinx/config/DOFLinx.ini"
 
@@ -150,6 +150,7 @@ restore_files() {
             echo -e "${cyan}[INFO] Disabling and removing DOFLinx service${nc}"
             batocera-services disable doflinx 2>/dev/null
             rm -f "${HOME}/services/doflinx"
+            rm -r /usr/bin/mame/plugins/doflinx
         fi
         
         # Try to make the changes permanent
@@ -327,7 +328,7 @@ else
         fi
 
         # Check if we are on Batocera and if so, change the plugin path
-        if batocera-info 2>/dev/null | grep -q 'System'; then
+        if [ "$batocera" = "true" ]; then
             PLUGIN_PATH="${BATOCERA_PLUGIN_PATH}"
         else
             echo "Not on Batocera, finding plugin path"
@@ -341,7 +342,7 @@ else
        #for a vanilla Batocera system, this plugins folder won't be there so we need to create it first
        DOFLINX_DIR="${PLUGIN_PATH}/doflinx"
         if [ ! -d "$DOFLINX_DIR" ]; then
-            echo "Creating directory: $DOFLINX_DIR"
+            echo -e "${cyan}[INFO] Creating directory: $DOFLINX_DIR${nc}"
             mkdir -p "$DOFLINX_DIR"
         fi
       
@@ -392,33 +393,46 @@ if [ "$batocera" = "true" ]; then
       batocera-services enable doflinx 
       echo -e "${cyan}[INFO] DOFLinx added as a Batocera service for auto-start${nc}"
    fi 
-   #TODO this is a temp fix until doflinx is updated
+  
    #****************************************************************
-   DOFLINX_DIR="${BATOCERA_PLUGIN_PATH}/doflinx"
-   if [ ! -d "$DOFLINX_DIR" ]; then
-        echo "Creating directory: $DOFLINX_DIR"
-        mkdir -p "$DOFLINX_DIR"
-   fi
-   echo "Downloading doflinx plugin files..."
-   if [ "$machine_arch" = "arm64" ]; then
-      download_github_file "https://github.com/alinke/pixelcade-linux-builds/blob/main/batocera/doflinx/DLSocket" "DLSocket" "$DOFLINX_DIR"
-      download_github_file "https://github.com/alinke/pixelcade-linux-builds/blob/main/batocera/doflinx/DOFLinx" "DOFLinx" "${HOME}/doflinx"
-      download_github_file "https://github.com/alinke/pixelcade-linux-builds/blob/main/batocera/doflinx/DOFLinx.pdb" "DOFLinx.pdb" "${HOME}/doflinx"
-      chmod a+x ${HOME}/doflinx/DOFLinx
-      chmod a+x ${HOME}/doflinx/DOFLinxMsg
-      chmod a+x ${DOFLINX_DIR}/DLSocket
-   fi   
-   download_github_file "https://github.com/alinke/pixelcade-linux-builds/blob/main/batocera/doflinx/init.lua" "init.lua" "$DOFLINX_DIR"
-   download_github_file "https://github.com/alinke/pixelcade-linux-builds/blob/main/batocera/doflinx/plugin.json" "plugin.json" "$DOFLINX_DIR"
+   #DOFLINX_DIR="${BATOCERA_PLUGIN_PATH}/doflinx"
+   #if [ ! -d "$DOFLINX_DIR" ]; then
+   #     echo "Creating directory: $DOFLINX_DIR"
+   #     mkdir -p "$DOFLINX_DIR"
+   #fi
+   #echo "Downloading doflinx plugin files..."
+   #if [ "$machine_arch" = "arm64" ]; then
+      #download_github_file "https://github.com/alinke/pixelcade-linux-builds/blob/main/batocera/doflinx/DLSocket" "DLSocket" "$DOFLINX_DIR"
+      #download_github_file "https://github.com/alinke/pixelcade-linux-builds/blob/main/batocera/doflinx/DOFLinx" "DOFLinx" "${HOME}/doflinx"
+      #download_github_file "https://github.com/alinke/pixelcade-linux-builds/blob/main/batocera/doflinx/DOFLinx.pdb" "DOFLinx.pdb" "${HOME}/doflinx"
+      #chmod a+x ${HOME}/doflinx/DOFLinx
+      #chmod a+x ${HOME}/doflinx/DOFLinxMsg
+      #chmod a+x ${DOFLINX_DIR}/DLSocket
+   #fi   
+   #download_github_file "https://github.com/alinke/pixelcade-linux-builds/blob/main/batocera/doflinx/init.lua" "init.lua" "$DOFLINX_DIR"
+   #download_github_file "https://github.com/alinke/pixelcade-linux-builds/blob/main/batocera/doflinx/plugin.json" "plugin.json" "$DOFLINX_DIR"
    #*****************************************************************
 
-   # Check if directory exists and create it if needed
+   DOFLINX_DIR="${BATOCERA_PLUGIN_PATH}/doflinx"
+   download_github_file "https://github.com/alinke/pixelcade-linux-builds/blob/main/batocera/doflinx/DLSocket" "DLSocket" "$DOFLINX_DIR"
+   
+   chmod a+x ${HOME}/doflinx/DOFLinx
+   chmod a+x ${HOME}/doflinx/DOFLinxMsg
+   chmod a+x ${DOFLINX_DIR}/DLSocket
+
+      # Check if directory exists and create it if needed
    if [ ! -d "/usr/bin/mame/plugins" ]; then
       mkdir -p /usr/bin/mame/plugins
    fi
 
    # Create the symlink (will overwrite if already exists)
-   ln -sf /userdata/saves/mame/plugins/doflinx /usr/bin/mame/plugins/doflinx
+   if [ ! -L "/usr/bin/mame/plugins/doflinx" ]; then
+      ln -sf /userdata/saves/mame/plugins/doflinx /usr/bin/mame/plugins/doflinx
+      echo -e "${cyan}[INFO] DOFLinx plugin symlink created successfully${nc}"
+   else
+      echo -e "${cyan}[INFO] DOFLinx plugin symlink already exists, skipping...${nc}"
+   fi
+   #ln -sf /userdata/saves/mame/plugins/doflinx /usr/bin/mame/plugins/doflinx
    echo -e "${cyan}[INFO] MAME DOFLinx plugin installed${nc}"
     
    # Determine the correct path based on the Batocera version
@@ -531,6 +545,15 @@ if [ -d "$HOME/pixelcade" ]; then
     echo "Will attempt to continue with the rest of the script..."
   else
     backup_file "$DOFLINX_INI_FILE" "DOFLinx.ini.original"
+
+    # Add DEBUG=0 if DEBUG isn't already there
+    if ! grep -q "^DEBUG=" "$DOFLINX_INI_FILE"; then
+      temp_file=$(mktemp)
+      echo "#DEBUG=1 will enable debug logging which will show up in DOFLinx.log" > "$temp_file"
+      echo "DEBUG=0" >> "$temp_file"
+      cat "$DOFLINX_INI_FILE" >> "$temp_file"
+      mv "$temp_file" "$DOFLINX_INI_FILE"
+    fi
     ESCAPED_HOME=$(echo "$HOME" | sed 's/\//\\\//g')
 
     # Update PATH_MAME with actual home path, sed can't handle normal variable substitution 
