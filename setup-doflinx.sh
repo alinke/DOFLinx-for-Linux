@@ -4,7 +4,7 @@
 # wget https://raw.githubusercontent.com/alinke/DOFLinx-for-Linux/refs/heads/main/setup-doflinx.sh && chmod +x setup-doflinx.sh && ./setup-doflinx.sh
 # /usr/bin/emulatorlauncher -system mame -rom /userdata/roms/mame/1942.zip #for testing game launches in Batocera from command line
 
-version=6
+version=7
 install_successful=true
 batocera=false
 batocera_version=""
@@ -285,23 +285,6 @@ if test -f /proc/device-tree/model; then
    fi
 fi
 
-if [ "$pi4" = "true" ]; then
-    echo -e "\n${bold_red}[WARNING] Game performance with DOFLinx effects will be noticeably slower on your Raspberry Pi 4 at this time${nc}"
-    echo -e "${cyan}Are you sure you want to continue? (y/n)${nc}"
-    
-    read -r pi4_answer
-    
-    case ${pi4_answer:0:1} in
-        y|Y )
-            echo -e "${cyan}Continuing with installation...${nc}"
-            ;;
-        * )
-            echo -e "${cyan}Installation canceled.${nc}"
-            exit 1
-            ;;
-    esac
-fi
-
 batocera_version="$(batocera-es-swissknife --version | cut -c1-2)" #get the version of Batocera as only Batocera V40 and above support services
 
 if [ "$machine_arch" != "arm64" ] && [ "$batocera_version" != "42" ] && [ "$batocera_version" != "41" ] && [ "$batocera_version" != "40" ]; then
@@ -513,7 +496,6 @@ if [ "$batocera" = "true" ]; then
         else
             echo -e "${cyan}[INFO] Skipped: $BATOCERA_CONFIG_LINE1 already exists${nc}"
         fi
-
         if ! grep -q "^$BATOCERA_CONFIG_LINE2$" "$BATOCERA_CONFIG_FIlE"; then
             # Append LINE2 to the file
             echo "$BATOCERA_CONFIG_LINE2" >> "$BATOCERA_CONFIG_FIlE"
@@ -602,7 +584,6 @@ for js_device in /dev/input/js*; do
     fi
 done
 
-
 # If this is a Pixelcade installation, then we'll pre-configure DOFLinx.ini
 if [ -d "$HOME/pixelcade" ]; then
   echo "Pixelcade folder found at $HOME/pixelcade"
@@ -634,14 +615,40 @@ if [ -d "$HOME/pixelcade" ]; then
     sed -i 's|^PIXELCADE_GAME_START_HIGHSCORE=1|#PIXELCADE_GAME_START_HIGHSCORE=1|' "$DOFLINX_INI_FILE"
     grep -q "#PIXELCADE_GAME_START_HIGHSCORE=1" "$DOFLINX_INI_FILE" || echo "#PIXELCADE_GAME_START_HIGHSCORE=1" >> "$DOFLINX_INI_FILE"
 
-    if [ "$batocera" = "true" ]; then
+   if [ "$batocera" = "true" ]; then
       echo "Batocera detected, updating MAME_FOLDER to /usr/bin/mame/"
       sed -i 's|^MAME_FOLDER=.*$|MAME_FOLDER=/usr/bin/mame/|' "$DOFLINX_INI_FILE"
       sed -i 's|^MAME_HISCORE_FOLDER=.*$|MAME_HISCORE_FOLDER=/userdata/saves/mame/plugins/hiscore/|' "$DOFLINX_INI_FILE"
-    else
+   else
       echo "Not on Batocera, updating MAME_FOLDER to /usr/games/"
       sed -i 's|^MAME_FOLDER=.*$|MAME_FOLDER=/usr/games/|' "$DOFLINX_INI_FILE"
-    fi
+   fi
+
+   # Now let's set MAME_PLUGIN_LOOPS which effects performance on Linux, the bigger the number the slower the polling and hence better performance
+   if [ "$pi5" = "true" ] || uname -m | grep -q 'x86'; then
+      if grep -q "^MAME_PLUGIN_LOOPS=" "$DOFLINX_INI_FILE"; then
+        # If it exists, set it to 1
+        sed -i "s/^MAME_PLUGIN_LOOPS=.*$/MAME_PLUGIN_LOOPS=1/" "$DOFLINX_INI_FILE"
+        echo -e "${cyan}[INFO] Updated MAME_PLUGIN_LOOPS to 1 for Pi5 or x86${nc}"
+        
+        if ! grep -q "^#Set MAME_PLUGIN_LOOPS" "$DOFLINX_INI_FILE"; then
+          sed -i "/^MAME_PLUGIN_LOOPS=.*$/i #Set MAME_PLUGIN_LOOPS to a higher number for better performance for low powered devices, lower number down to 1 equals faster DOFLinx polling" "$DOFLINX_INI_FILE"
+        fi
+      else
+        sed -i "/^PATH_HI2TXT=.*$/a #Set MAME_PLUGIN_LOOPS to a higher number for better performance for low powered devices, lower number down to 1 equals faster DOFLinx polling\nMAME_PLUGIN_LOOPS=1" "$DOFLINX_INI_FILE"
+        echo -e "${cyan}[INFO] Added MAME_PLUGIN_LOOPS=1 for Pi5 or x86${nc}"
+      fi
+    else
+      if ! grep -q "^MAME_PLUGIN_LOOPS=" "$DOFLINX_INI_FILE"; then
+        sed -i "/^PATH_HI2TXT=.*$/a #Set MAME_PLUGIN_LOOPS to a higher number for better performance for low powered devices, lower number down to 1 equals faster DOFLinx polling\nMAME_PLUGIN_LOOPS=2" "$DOFLINX_INI_FILE"
+        echo -e "${cyan}[INFO] Added MAME_PLUGIN_LOOPS=2 to DOFLinx.ini${nc}"
+      else
+        echo -e "${cyan}[INFO] MAME_PLUGIN_LOOPS already exists in DOFLinx.ini, not modifying${nc}"
+        if ! grep -q "^#Set MAME_PLUGIN_LOOPS" "$DOFLINX_INI_FILE"; then
+          sed -i "/^MAME_PLUGIN_LOOPS=.*$/i #Set MAME_PLUGIN_LOOPS to a higher number for better performance for low powered devices, lower number down to 1 equals faster DOFLinx polling" "$DOFLINX_INI_FILE"
+        fi
+      fi
+   fi
 
    # If we've got a game pad controller, let's set the coin and player start button numbers
    LINK_BUT_CN=$(grep -E "^LINK_BUT_CN=" "$DOFLINX_INI_FILE" | tr -d '\r' | tr -d '\n')
