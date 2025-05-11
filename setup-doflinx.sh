@@ -4,7 +4,7 @@
 # wget https://raw.githubusercontent.com/alinke/DOFLinx-for-Linux/refs/heads/main/setup-doflinx.sh && chmod +x setup-doflinx.sh && ./setup-doflinx.sh
 # /usr/bin/emulatorlauncher -system mame -rom /userdata/roms/mame/1942.zip #for testing game launches in Batocera from command line
 
-version=5
+version=6
 install_successful=true
 batocera=false
 batocera_version=""
@@ -61,6 +61,22 @@ BACKUP_DIR="${HOME}/doflinx/backup"
 if batocera-info | grep -q 'System'; then
    batocera=true
 fi
+
+get_joystick_number() {
+    local device_pattern="$1"
+    local js_number=""
+    
+    # Use case-insensitive search and match device pattern anywhere in the name
+    js_number=$(grep -i -A 5 "Name=.*$device_pattern" /proc/bus/input/devices | grep "Handlers" | grep -o "js[0-9]*" | head -1)
+    
+    if [ -n "$js_number" ]; then
+        # Extract just the number from 'js0', 'js1', etc. and add 1 (so js0 becomes 1)
+        local num="${js_number#js}"
+        echo "$((num + 1))"
+    else
+        echo "none"
+    fi
+}
 
 download_github_file() {
     local github_url="$1"
@@ -415,7 +431,7 @@ if [ "$batocera" = "true" ]; then
 
    DOFLINX_DIR="${BATOCERA_PLUGIN_PATH}/doflinx"
    download_github_file "https://github.com/alinke/pixelcade-linux-builds/blob/main/batocera/doflinx/DLSocket" "DLSocket" "$DOFLINX_DIR"
-   
+
    chmod a+x ${HOME}/doflinx/DOFLinx
    chmod a+x ${HOME}/doflinx/DOFLinxMsg
    chmod a+x ${DOFLINX_DIR}/DLSocket
@@ -533,6 +549,53 @@ else
   echo -e "${green}[INFO]${nc}Not on RetroPie, skipping RetroPie setup..."
 fi
 
+# Initialize arrays to track detected joysticks
+DETECTED_JS=()
+
+# Check for controllers and get their joystick numbers
+# Xbox controller
+if grep -i -q "X-Box" /proc/bus/input/devices; then
+    XBOX_JS=$(get_joystick_number "X-Box")
+    XBOX_CONNECTED=1
+    DETECTED_JS+=($((XBOX_JS - 1)))
+else
+    XBOX_CONNECTED=0
+    XBOX_JS="none"
+fi
+
+# USB 2-axis 8-button gamepad
+if grep -q "USB,2-axis 8-button gamepad" /proc/bus/input/devices; then
+    GAMEPAD_JS=$(get_joystick_number "USB,2-axis 8-button gamepad")
+    GAMEPAD_CONNECTED=1
+    DETECTED_JS+=($((GAMEPAD_JS - 1)))
+else
+    GAMEPAD_CONNECTED=0
+    GAMEPAD_JS="none"
+fi
+
+# Nintendo Switch controller
+if grep -i -q "Nintendo Switch" /proc/bus/input/devices; then
+    SWITCH_JS=$(get_joystick_number "Nintendo Switch")
+    SWITCH_CONNECTED=1
+    DETECTED_JS+=($((SWITCH_JS - 1)))
+else
+    SWITCH_CONNECTED=0
+    SWITCH_JS="none"
+fi
+
+# Fallback: Check for any joystick devices that weren't specifically detected
+# Get a list of all joystick devices
+FALLBACK_JS=()
+for js_device in /dev/input/js*; do
+    if [ -c "$js_device" ]; then
+        js_num=${js_device##*/js}
+        # Check if this joystick is already detected
+        if ! [[ " ${DETECTED_JS[@]} " =~ " ${js_num} " ]]; then
+            FALLBACK_JS+=($js_num)
+        fi
+    fi
+done
+
 
 # If this is a Pixelcade installation, then we'll pre-configure DOFLinx.ini
 if [ -d "$HOME/pixelcade" ]; then
@@ -574,6 +637,60 @@ if [ -d "$HOME/pixelcade" ]; then
       sed -i 's|^MAME_FOLDER=.*$|MAME_FOLDER=/usr/games/|' "$DOFLINX_INI_FILE"
     fi
 
+   # If we've got a game pad controller, let's set the coin and player start button numbers
+   LINK_BUT_CN=$(grep -E "^LINK_BUT_CN=" "$DOFLINX_INI_FILE" | tr -d '\r' | tr -d '\n')
+   LINK_BUT_P1=$(grep -E "^LINK_BUT_P1=" "$DOFLINX_INI_FILE" | tr -d '\r' | tr -d '\n')
+   
+   # Initialize with default values if lines don't exist
+   if [ -z "$LINK_BUT_CN" ]; then
+      LINK_BUT_CN="LINK_BUT_CN=0000,Orange,6"
+   fi
+   if [ -z "$LINK_BUT_P1" ]; then
+      LINK_BUT_P1="LINK_BUT_P1=0000,Cyan,2"
+   fi
+
+   # Clear any existing joystick entries (anything with J0)
+   LINK_BUT_CN=$(echo "$LINK_BUT_CN" | sed -E 's/,0000,Orange,J0[0-9][0-9][0-9]//g')
+   LINK_BUT_P1=$(echo "$LINK_BUT_P1" | sed -E 's/,0000,Cyan,J0[0-9][0-9][0-9]//g')
+   
+   # For USB 2-axis 8-button gamepad
+   if [ "$GAMEPAD_JS" != "none" ]; then
+      LINK_BUT_CN="${LINK_BUT_CN},0000,Orange,J0${GAMEPAD_JS}06"
+      LINK_BUT_P1="${LINK_BUT_P1},0000,Cyan,J0${GAMEPAD_JS}07"
+   fi
+   
+   # For Nintendo Switch controller
+   if [ "$SWITCH_JS" != "none" ]; then
+      LINK_BUT_CN="${LINK_BUT_CN},0000,Orange,J0${SWITCH_JS}09"
+      LINK_BUT_P1="${LINK_BUT_P1},0000,Cyan,J0${SWITCH_JS}08"
+   fi
+   
+   # For Xbox controller
+   if [ "$XBOX_JS" != "none" ]; then
+      LINK_BUT_CN="${LINK_BUT_CN},0000,Orange,J0${XBOX_JS}06"
+      LINK_BUT_P1="${LINK_BUT_P1},0000,Cyan,J0${XBOX_JS}07"
+   fi
+   
+   # For fallback joysticks (with default button mappings)
+   for js_num in "${FALLBACK_JS[@]}"; do
+      # Add 1 to convert from js0->1, js1->2, etc.
+      js_logical=$((js_num + 1))
+      # Default mappings: button 6 for coin, button 7 for play
+      LINK_BUT_CN="${LINK_BUT_CN},0000,Orange,J0${js_logical}06"
+      LINK_BUT_P1="${LINK_BUT_P1},0000,Cyan,J0${js_logical}07"
+      echo -e "${cyan}[INFO] Added fallback button configurations for unknown joystick at js${js_num} (configured as joystick ${js_logical})${nc}"
+   done
+   
+   sed -i "s/^LINK_BUT_CN=.*$/${LINK_BUT_CN//\//\\/}/" "$DOFLINX_INI_FILE" 2>/dev/null || true
+   if ! grep -q "^LINK_BUT_CN=" "$DOFLINX_INI_FILE"; then
+      echo "$LINK_BUT_CN" >> "$DOFLINX_INI_FILE"
+   fi
+   
+   sed -i "s/^LINK_BUT_P1=.*$/${LINK_BUT_P1//\//\\/}/" "$DOFLINX_INI_FILE" 2>/dev/null || true
+   if ! grep -q "^LINK_BUT_P1=" "$DOFLINX_INI_FILE"; then
+      echo "$LINK_BUT_P1" >> "$DOFLINX_INI_FILE"
+   fi
+
     echo -e "${cyan}[INFO] DOFLinx.ini has been updated${nc}"
   fi
 else
@@ -604,7 +721,20 @@ if [[ $install_successful == "true" ]]; then
     fi
    echo -e "${cyan}[INFO] DOFLinx guide can be found at https://doflinx.github.io/docs/${nc}"
    echo -e "${cyan}[INFO] Support can be found at http://www.vpforums.org/index.php?showforum=104${nc}"
-   echo -e "${cyan}[INFO] You can customize DOFLinx parameters in ${HOME}/doflinx/config/DOFLinx.ini for button input codes or other options${nc}"
+   echo -e "${cyan}[INFO] Joystick controller(s) detected and configured for coin input and player start in "$DOFLINX_INI_FILE":${nc}"
+   [ "$XBOX_CONNECTED" = "1" ] && echo -e "${cyan}[INFO]   * Xbox controller (Joystick ${XBOX_JS})${nc}"
+   [ "$GAMEPAD_CONNECTED" = "1" ] && echo -e "${cyan}[INFO]   * USB 2-axis 8-button gamepad (Joystick ${GAMEPAD_JS})${nc}"
+   [ "$SWITCH_CONNECTED" = "1" ] && echo -e "${cyan}[INFO]   * Nintendo Switch controller (Joystick ${SWITCH_JS})${nc}"
+
+   # Show fallback joysticks in the summary
+   for js_num in "${FALLBACK_JS[@]}"; do
+      echo -e "${cyan}[INFO]   * Unknown joystick at js${js_num} (Joystick $((js_num + 1)))${nc}"
+   done
+
+   if [ "$XBOX_CONNECTED" != "1" ] && [ "$GAMEPAD_CONNECTED" != "1" ] && [ "$SWITCH_CONNECTED" != "1" ] && [ ${#FALLBACK_JS[@]} -eq 0 ]; then
+      echo -e "${cyan}[INFO]   * No joysticks detected${nc}"
+   fi
+   echo -e "${cyan}--------------------------------${nc}"
    echo -e "${cyan}[INFO] If you want to uninstall DOFLinx, re-run this script and append: undo${nc}"
 else
   echo -e "${bold_red}[ERROR] DOFLinx installation failed${nc}"
