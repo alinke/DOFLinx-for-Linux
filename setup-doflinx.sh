@@ -721,7 +721,7 @@ if [[ $install_successful == "true" ]]; then
     fi
    echo -e "${cyan}[INFO] DOFLinx guide can be found at https://doflinx.github.io/docs/${nc}"
    echo -e "${cyan}[INFO] Support can be found at http://www.vpforums.org/index.php?showforum=104${nc}"
-   echo -e "${cyan}[INFO] Joystick controller(s) detected and configured for coin input and player start in "$DOFLINX_INI_FILE":${nc}"
+   echo -e "${cyan}[INFO] Gamepad controller(s) detected and configured for coin input and player start in "$DOFLINX_INI_FILE":${nc}"
    [ "$XBOX_CONNECTED" = "1" ] && echo -e "${cyan}[INFO]   * Xbox controller (Joystick ${XBOX_JS})${nc}"
    [ "$GAMEPAD_CONNECTED" = "1" ] && echo -e "${cyan}[INFO]   * USB 2-axis 8-button gamepad (Joystick ${GAMEPAD_JS})${nc}"
    [ "$SWITCH_CONNECTED" = "1" ] && echo -e "${cyan}[INFO]   * Nintendo Switch controller (Joystick ${SWITCH_JS})${nc}"
@@ -732,7 +732,7 @@ if [[ $install_successful == "true" ]]; then
    done
 
    if [ "$XBOX_CONNECTED" != "1" ] && [ "$GAMEPAD_CONNECTED" != "1" ] && [ "$SWITCH_CONNECTED" != "1" ] && [ ${#FALLBACK_JS[@]} -eq 0 ]; then
-      echo -e "${cyan}[INFO]   * No joysticks detected${nc}"
+      echo -e "${cyan}[INFO]   * No gamepads detected${nc}"
    fi
    echo -e "${cyan}--------------------------------${nc}"
    echo -e "${cyan}[INFO] If you want to uninstall DOFLinx, re-run this script and append: undo${nc}"
