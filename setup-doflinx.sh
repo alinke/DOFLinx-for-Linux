@@ -430,7 +430,13 @@ if [ "$batocera" = "true" ]; then
    #*****************************************************************
 
    DOFLINX_DIR="${BATOCERA_PLUGIN_PATH}/doflinx"
-   download_github_file "https://github.com/alinke/pixelcade-linux-builds/blob/main/batocera/doflinx/DLSocket" "DLSocket" "$DOFLINX_DIR"
+   if [ "$machine_arch" = "arm64" ]; then
+      download_github_file "https://github.com/alinke/pixelcade-linux-builds/blob/main/batocera/doflinx/DLSocket" "DLSocket" "$DOFLINX_DIR"
+   fi
+
+   if uname -m | grep -q 'x86'; then
+      download_github_file "https://github.com/alinke/pixelcade-linux-builds/blob/main/batocera/doflinx/x86/DLSocket" "DLSocket" "$DOFLINX_DIR"
+   fi
 
    chmod a+x ${HOME}/doflinx/DOFLinx
    chmod a+x ${HOME}/doflinx/DOFLinxMsg
