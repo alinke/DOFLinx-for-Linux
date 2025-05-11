@@ -4,7 +4,7 @@
 # wget https://raw.githubusercontent.com/alinke/DOFLinx-for-Linux/refs/heads/main/setup-doflinx.sh && chmod +x setup-doflinx.sh && ./setup-doflinx.sh
 # /usr/bin/emulatorlauncher -system mame -rom /userdata/roms/mame/1942.zip #for testing game launches in Batocera from command line
 
-version=7
+version=8
 install_successful=true
 batocera=false
 batocera_version=""
@@ -285,11 +285,12 @@ if test -f /proc/device-tree/model; then
    fi
 fi
 
-batocera_version="$(batocera-es-swissknife --version | cut -c1-2)" #get the version of Batocera as only Batocera V40 and above support services
-
-if [ "$machine_arch" != "arm64" ] && [ "$batocera_version" != "42" ] && [ "$batocera_version" != "41" ] && [ "$batocera_version" != "40" ]; then
-   echo -e "${red}[ERROR] Sorry, arm64 architecture with Batocera version 40, 41, or 42 is required at this time, exiting...${nc}"
-   exit 1
+if [ "$batocera" = "true" ]; then
+    batocera_version="$(batocera-es-swissknife --version | cut -c1-2)" 
+    if [ "$batocera_version" -lt "39" ]; then
+        echo -e "${red}[ERROR] Sorry, Batocera version 39 or higher is required. Please update and try again: exiting...${nc}"
+        exit 1
+    fi
 fi
 
 if [[ $machine_arch == "default" ]]; then
@@ -391,7 +392,67 @@ if [ "$batocera" = "true" ]; then
       sleep 1
       batocera-services enable doflinx 
       echo -e "${cyan}[INFO] DOFLinx added as a Batocera service for auto-start${nc}"
-   fi 
+elif [[ $batocera_version -lt $batocera_40_plus_version ]]; then #handle older Batocera versions, just V39 right now
+      # Modify custom.sh for auto-start in older Batocera versions
+      if [[ -f ${HOME}/custom.sh ]]; then
+          # Backup the original file first
+          cp ${HOME}/custom.sh ${HOME}/custom.sh.backup
+          
+          # Update the custom.sh file - modified to add AFTER the pixelcade line
+          sed -i '/#        cd \/userdata\/system\/pixelcade && .\/pixelweb -image "system\/batocera.png" -startup &/a \ \ \ \ \ \ \ \ echo "export PATH=\/userdata\/system\/pixelcade\/jdk\/bin:\$PATH" > \/etc\/profile.d\/pixelcade_path.sh\n\ \ \ \ \ \ \ \ chmod +x \/etc\/profile.d\/pixelcade_path.sh\n\ \ \ \ \ \ \ \ # set the java path, DOFLinx needs it\n\ \ \ \ \ \ \ \ export PATH=\/userdata\/system\/pixelcade\/jdk\/bin:$PATH\n\ \ \ \ \ \ \ \ # Re-create the plugin symblink in case it got blown away\n\ \ \ \ \ \ \ \ if [ ! -L "\/usr\/bin\/mame\/plugins\/doflinx" ]; then\n\ \ \ \ \ \ \ \ \ \ \ \ ln -sf \/userdata\/saves\/mame\/plugins\/doflinx \/usr\/bin\/mame\/plugins\/doflinx\n\ \ \ \ \ \ \ \ fi\n\ \ \ \ \ \ \ \ sleep 5\n\ \ \ \ \ \ \ \ # Note if sleep 1 is not there, then sometimes DOFLinx will crash on boot\n\ \ \ \ \ \ \ \ cd \/userdata\/system\/doflinx && .\/DOFLinx PATH_INI=\/userdata\/system\/doflinx\/config\/DOFLinx.ini \&' ${HOME}/custom.sh
+          
+          # If pixelcade line doesn't exist, add after the start) line instead
+          if ! grep -q "pixelcade" ${HOME}/custom.sh; then
+              sed -i '/start)/a \ \ \ \ \ \ \ \ echo "export PATH=\/userdata\/system\/pixelcade\/jdk\/bin:\$PATH" > \/etc\/profile.d\/pixelcade_path.sh\n\ \ \ \ \ \ \ \ chmod +x \/etc\/profile.d\/pixelcade_path.sh\n\ \ \ \ \ \ \ \ # set the java path, DOFLinx needs it\n\ \ \ \ \ \ \ \ export PATH=\/userdata\/system\/pixelcade\/jdk\/bin:$PATH\n\ \ \ \ \ \ \ \ # Re-create the plugin symblink in case it got blown away\n\ \ \ \ \ \ \ \ if [ ! -L "\/usr\/bin\/mame\/plugins\/doflinx" ]; then\n\ \ \ \ \ \ \ \ \ \ \ \ ln -sf \/userdata\/saves\/mame\/plugins\/doflinx \/usr\/bin\/mame\/plugins\/doflinx\n\ \ \ \ \ \ \ \ fi\n\ \ \ \ \ \ \ \ sleep 5\n\ \ \ \ \ \ \ \ # Note if sleep 1 is not there, then sometimes DOFLinx will crash on boot\n\ \ \ \ \ \ \ \ cd \/userdata\/system\/doflinx && .\/DOFLinx PATH_INI=\/userdata\/system\/doflinx\/config\/DOFLinx.ini \&' ${HOME}/custom.sh
+          fi
+          
+          echo -e "${cyan}[INFO] Modified custom.sh for auto-starting DOFLinx on boot${nc}"
+      else
+          # Create custom.sh if it doesn't exist
+          cat > ${HOME}/custom.sh << 'EOF'
+#!/bin/bash
+# Code here will be executed on every boot and shutdown.
+
+# Check if security is enabled and store that setting to a variable.
+#securityenabled="$(/usr/bin/batocera-settings-get system.security.enabled)"
+
+case "$1" in
+    start)
+        # Code in here will only be executed on boot.
+#        cd /userdata/system/pixelcade && ./pixelweb -image "system/batocera.png" -startup &
+        echo "export PATH=/userdata/system/pixelcade/jdk/bin:\$PATH" > /etc/profile.d/pixelcade_path.sh
+        chmod +x /etc/profile.d/pixelcade_path.sh
+        # set the java path, DOFLinx needs it
+        export PATH=/userdata/system/pixelcade/jdk/bin:$PATH
+        # Re-create the plugin symblink in case it got blown away
+        if [ ! -L "/usr/bin/mame/plugins/doflinx" ]; then
+            ln -sf /userdata/saves/mame/plugins/doflinx /usr/bin/mame/plugins/doflinx
+        fi
+        sleep 5
+        # Note if sleep 1 is not there, then sometimes DOFLinx will crash on boot
+        cd /userdata/system/doflinx && ./DOFLinx PATH_INI=/userdata/system/doflinx/config/DOFLinx.ini &
+        ;;
+    stop)
+        # Code in here will only be executed on shutdown.
+        # TO DO add Pixelcade LCD shutdown command here later
+
+        ;;
+    restart|reload)
+        # Code in here will executed (when?).
+
+        ;;
+    *)
+        # Code in here will be executed in all other conditions.
+        #echo "Usage: $0 {start|stop|restart}"
+        ;;
+esac
+
+exit $?
+EOF
+          chmod +x ${HOME}/custom.sh
+          echo -e "${cyan}[INFO] Created custom.sh for auto-starting DOFLinx on boot${nc}"
+   fi
+fi
   
    #****************************************************************
    #DOFLINX_DIR="${BATOCERA_PLUGIN_PATH}/doflinx"
